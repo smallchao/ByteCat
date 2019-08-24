@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="Stacking 就是当用初始训练数据学习出若干个基学习器后，将这几个学习器的预测结果作为新的训练集，来学习一个新的学习器。">
+<meta name="keywords" content="数据科学 比特猫 Byte猫">
+<meta property="og:type" content="article">
+<meta property="og:title" content="机器学习中的集成方法（4）--Stacking（堆叠法）">
+<meta property="og:url" content="https://smallchao.github.io/6/18机器学习中的集成方法（4）--Stacking（堆叠法）/index.html">
+<meta property="og:site_name" content="Byte猫">
+<meta property="og:description" content="Stacking 就是当用初始训练数据学习出若干个基学习器后，将这几个学习器的预测结果作为新的训练集，来学习一个新的学习器。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-afafcfff9b11425b.png">
+<meta property="og:updated_time" content="2019-08-24T16:07:06.314Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="机器学习中的集成方法（4）--Stacking（堆叠法）">
+<meta name="twitter:description" content="Stacking 就是当用初始训练数据学习出若干个基学习器后，将这几个学习器的预测结果作为新的训练集，来学习一个新的学习器。">
+<meta name="twitter:image" content="https://smallchao.github.io/upload_images/9210113-afafcfff9b11425b.png">
+  <link rel="canonical" href="https://smallchao.github.io/6/18机器学习中的集成方法（4）--Stacking（堆叠法）/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>机器学习中的集成方法（4）--Stacking（堆叠法） | Byte猫</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Byte猫</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">唤醒数据的价值</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-实用技术">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>实用技术</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-科学计算与统计">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>科学计算与统计</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-机器学习原理">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>机器学习原理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-半监督学习与强化学习">
+      
+    
+
+    <a href="/categories/7" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>半监督学习与强化学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-神经网络与深度学习">
+      
+    
+
+    <a href="/categories/8" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>神经网络与深度学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】个性化推荐">
+      
+    
+
+    <a href="/categories/9" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】个性化推荐</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】自然语言处理">
+      
+    
+
+    <a href="/categories/9" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】自然语言处理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】计算机视觉">
+      
+    
+
+    <a href="/categories/10" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】计算机视觉</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-模型工程化">
+      
+    
+
+    <a href="/categories/11" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>模型工程化</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/6/18机器学习中的集成方法（4）--Stacking（堆叠法）/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Byte猫">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">机器学习中的集成方法（4）--Stacking（堆叠法）
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-08-25 00:07:06" itemprop="dateModified" datetime="2019-08-25T00:07:06+08:00">2019-08-25</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">Stacking 就是当用初始训练数据学习出若干个基学习器后，将这几个学习器的预测结果作为新的训练集，来学习一个新的学习器。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <h2 id="一、概念理解"><a href="#一、概念理解" class="headerlink" title="一、概念理解"></a>一、概念理解</h2><p>Stacking 就是当用初始训练数据学习出若干个基学习器后，将这几个学习器的预测结果作为新的训练集，来学习一个新的学习器。Stacking 的基础层通常包括不同的学习算法，因此stacking ensemble往往是异构的。</p><a id="more"></a>
+<p><img src="/upload_images/9210113-afafcfff9b11425b.png" alt></p>
+<h2 id="二、执行步骤"><a href="#二、执行步骤" class="headerlink" title="二、执行步骤"></a>二、执行步骤</h2><p>假设有1000个样本，70%的样本作为训练集，30%的样本作为测试集。<br><strong>STEP1：</strong>在训练集上采用算法A、B、C等训练出一系列基学习器。<br><strong>STEP2：</strong>用这些基学习器的输出结果组成新的训练集，在其上训练一个元学习器（meta-classifier，通常为线性模型LR），用于组织利用基学习器的答案，也就是将基层模型的答案作为输入，让元学习器学习组织给基层模型的答案分配权重</p>
+<h2 id="三、使用mlxtend库实现Stacking方法"><a href="#三、使用mlxtend库实现Stacking方法" class="headerlink" title="三、使用mlxtend库实现Stacking方法"></a>三、使用mlxtend库实现Stacking方法</h2><p>最基本的使用方法，即使用前面分类器产生的特征输出或者概率输出作为meta-classifier的输入数据</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#-*- coding:utf-8 -*-</span></span><br><span class="line"><span class="string">'''</span></span><br><span class="line"><span class="string">Stacking方法</span></span><br><span class="line"><span class="string">'''</span></span><br><span class="line"><span class="keyword">from</span> sklearn.datasets <span class="keyword">import</span> load_iris</span><br><span class="line"><span class="keyword">from</span> sklearn.preprocessing <span class="keyword">import</span> StandardScaler</span><br><span class="line"><span class="keyword">from</span> sklearn <span class="keyword">import</span> model_selection</span><br><span class="line"><span class="keyword">from</span> sklearn.linear_model <span class="keyword">import</span> LogisticRegression</span><br><span class="line"><span class="keyword">from</span> sklearn.neighbors <span class="keyword">import</span> KNeighborsClassifier</span><br><span class="line"><span class="keyword">from</span> sklearn.naive_bayes <span class="keyword">import</span> GaussianNB </span><br><span class="line"><span class="keyword">from</span> sklearn.ensemble <span class="keyword">import</span> RandomForestClassifier</span><br><span class="line"><span class="keyword">from</span> mlxtend.classifier <span class="keyword">import</span> StackingClassifier</span><br><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> accuracy_score</span><br><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> confusion_matrix</span><br><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> classification_report</span><br><span class="line"><span class="keyword">import</span> warnings; warnings.filterwarnings(action=<span class="string">'ignore'</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  载入iris数据集</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line">iris = load_iris()</span><br><span class="line">X = iris.data[:,:<span class="number">5</span>]</span><br><span class="line">y = iris.target</span><br><span class="line"></span><br><span class="line">print(<span class="string">'feature='</span>,X)</span><br><span class="line">print(<span class="string">'target='</span>,y)</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  实现Stacking集成</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">StackingMethod</span><span class="params">(X, y)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    Stacking方法实现分类</span></span><br><span class="line"><span class="string">    INPUT -&gt; 特征, 分类标签</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    scaler = StandardScaler() <span class="comment"># 标准化转换</span></span><br><span class="line">    scaler.fit(X)  <span class="comment"># 训练标准化对象</span></span><br><span class="line">    traffic_feature= scaler.transform(X)   <span class="comment"># 转换数据集</span></span><br><span class="line">    feature_train, feature_test, target_train, target_test = model_selection.train_test_split(X, y, test_size=<span class="number">0.3</span>, random_state=<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">    clf1 = LogisticRegression(random_state=<span class="number">1</span>)</span><br><span class="line">    clf2 = RandomForestClassifier(random_state=<span class="number">1</span>)</span><br><span class="line">    clf3 = GaussianNB()</span><br><span class="line"></span><br><span class="line">    sclf = StackingClassifier(classifiers=[clf1, clf2, clf3],</span><br><span class="line">                              <span class="comment"># use_probas=True, 类别概率值作为meta-classfier的输入</span></span><br><span class="line">                              <span class="comment"># average_probas=False,  是否对每一个类别产生的概率值做平均</span></span><br><span class="line">                              meta_classifier=LogisticRegression())</span><br><span class="line"></span><br><span class="line">    sclf.fit(feature_train, target_train)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 模型测试</span></span><br><span class="line">    predict_results = sclf.predict(feature_test)</span><br><span class="line">    print(accuracy_score(predict_results, target_test))</span><br><span class="line">    conf_mat = confusion_matrix(target_test, predict_results)</span><br><span class="line">    print(conf_mat)</span><br><span class="line">    print(classification_report(target_test, predict_results))</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 5折交叉验证</span></span><br><span class="line">    <span class="keyword">for</span> clf, label <span class="keyword">in</span> zip([clf1, clf2, clf3, sclf], [<span class="string">'Logistic Regression'</span>, <span class="string">'Random Forest'</span>, <span class="string">'naive Bayes'</span>, <span class="string">'StackingModel'</span>]):</span><br><span class="line">        scores = model_selection.cross_val_score(clf, X, y, cv=<span class="number">5</span>, scoring=<span class="string">'accuracy'</span>)</span><br><span class="line">        print(<span class="string">"Accuracy: %0.2f (+/- %0.2f) [%s]"</span> % (scores.mean(), scores.std(), label))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> sclf</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  主程序</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line"></span><br><span class="line">    model = StackingMethod(X, y)</span><br></pre></td></tr></table></figure>
+
+<p>另外一种方法是对训练集中的特征维度进行操作的，这次不是给每一个基分类器全部的特征，而是给不同的基分类器分配不同的特征，即比如基分类器1训练前半部分特征，基分类器2训练后半部分特征（可以通过sklearn 的pipelines 实现）。最终通过StackingClassifier组合起来。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#-*- coding:utf-8 -*-</span></span><br><span class="line"><span class="string">'''</span></span><br><span class="line"><span class="string">Stacking方法</span></span><br><span class="line"><span class="string">'''</span></span><br><span class="line"><span class="keyword">from</span> sklearn.datasets <span class="keyword">import</span> load_iris</span><br><span class="line"><span class="keyword">from</span> sklearn.preprocessing <span class="keyword">import</span> StandardScaler</span><br><span class="line"><span class="keyword">from</span> sklearn <span class="keyword">import</span> model_selection</span><br><span class="line"><span class="keyword">from</span> sklearn.linear_model <span class="keyword">import</span> LogisticRegression</span><br><span class="line"><span class="keyword">from</span> mlxtend.feature_selection <span class="keyword">import</span> ColumnSelector</span><br><span class="line"><span class="keyword">from</span> mlxtend.classifier <span class="keyword">import</span> StackingClassifier</span><br><span class="line"><span class="keyword">from</span> sklearn.pipeline <span class="keyword">import</span> make_pipeline</span><br><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> accuracy_score</span><br><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> confusion_matrix</span><br><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> classification_report</span><br><span class="line"><span class="keyword">import</span> warnings; warnings.filterwarnings(action=<span class="string">'ignore'</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  载入iris数据集</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line">iris = load_iris()</span><br><span class="line">X = iris.data[:,:<span class="number">5</span>]</span><br><span class="line">y = iris.target</span><br><span class="line"></span><br><span class="line">print(<span class="string">'feature='</span>,X)</span><br><span class="line">print(<span class="string">'target='</span>,y)</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  实现Stacking集成</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">StackingMethod</span><span class="params">(X, y)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    Stacking方法实现分类</span></span><br><span class="line"><span class="string">    INPUT -&gt; 特征, 分类标签</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    scaler = StandardScaler() <span class="comment"># 标准化转换</span></span><br><span class="line">    scaler.fit(X)  <span class="comment"># 训练标准化对象</span></span><br><span class="line">    traffic_feature= scaler.transform(X)   <span class="comment"># 转换数据集</span></span><br><span class="line">    feature_train, feature_test, target_train, target_test = model_selection.train_test_split(X, y, test_size=<span class="number">0.3</span>, random_state=<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">    pipe1 = make_pipeline(ColumnSelector(cols=(<span class="number">0</span>, <span class="number">1</span>)),  </span><br><span class="line">                          LogisticRegression())</span><br><span class="line">    pipe2 = make_pipeline(ColumnSelector(cols=(<span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>)),  </span><br><span class="line">                          LogisticRegression())</span><br><span class="line"></span><br><span class="line">    sclf = StackingClassifier(classifiers=[pipe1, pipe2],</span><br><span class="line">                              meta_classifier=LogisticRegression())</span><br><span class="line"></span><br><span class="line">    sclf.fit(feature_train, target_train)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 模型测试</span></span><br><span class="line">    predict_results = sclf.predict(feature_test)</span><br><span class="line">    print(accuracy_score(predict_results, target_test))</span><br><span class="line">    conf_mat = confusion_matrix(target_test, predict_results)</span><br><span class="line">    print(conf_mat)</span><br><span class="line">    print(classification_report(target_test, predict_results))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> sclf</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  主程序</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line"></span><br><span class="line">    model = StackingMethod(X, y)</span><br></pre></td></tr></table></figure>
+
+<h2 id="四、使用源码实现Stacking方法"><a href="#四、使用源码实现Stacking方法" class="headerlink" title="四、使用源码实现Stacking方法"></a>四、使用源码实现Stacking方法</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># coding=utf-8</span></span><br><span class="line"><span class="keyword">import</span> imp</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">from</span> sklearn.datasets <span class="keyword">import</span> load_iris</span><br><span class="line"></span><br><span class="line">iris = load_iris()</span><br><span class="line">x = iris.data</span><br><span class="line">y = iris.target</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line"></span><br><span class="line">x = pd.DataFrame(x, columns=[<span class="string">'s_len'</span>,<span class="string">'s_wid'</span>,<span class="string">'p_len'</span>,<span class="string">'p_wid'</span>])</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> sklearn.pipeline <span class="keyword">import</span> Pipeline</span><br><span class="line"><span class="keyword">from</span> sklearn.base <span class="keyword">import</span> BaseEstimator, ClassifierMixin, TransformerMixin</span><br><span class="line"><span class="keyword">from</span> sklearn.svm <span class="keyword">import</span> SVC</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">StackingAveragedModels</span><span class="params">(BaseEstimator, ClassifierMixin, TransformerMixin)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, base_models, meta_model)</span>:</span></span><br><span class="line">        self.base_models = base_models</span><br><span class="line">        self.meta_model = meta_model</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">fit</span><span class="params">(self, X, y)</span>:</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 训练第一级学习器</span></span><br><span class="line">        layer1_predictions = np.zeros((X.shape[<span class="number">0</span>], len(self.base_models)))</span><br><span class="line">        <span class="keyword">for</span> i, model <span class="keyword">in</span> enumerate(self.base_models):</span><br><span class="line">            model.fit(X, y)</span><br><span class="line">            y_pred = model.predict(X)</span><br><span class="line">            layer1_predictions[:, i] = y_pred</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 训练第二级学习器</span></span><br><span class="line">        self.meta_model.fit(layer1_predictions, y)</span><br><span class="line">        <span class="keyword">return</span> self</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">predict</span><span class="params">(self, X)</span>:</span></span><br><span class="line">        temp = np.column_stack([model.predict(X) <span class="keyword">for</span> model <span class="keyword">in</span> self.base_models])</span><br><span class="line">        <span class="keyword">return</span> self.meta_model.predict(temp)</span><br><span class="line"></span><br><span class="line">clf = StackingAveragedModels(base_models=[SVC(gamma=<span class="string">'scale'</span>),</span><br><span class="line">                                          SVC(gamma=<span class="string">'scale'</span>)],</span><br><span class="line">                             meta_model=SVC(gamma=<span class="string">'scale'</span>))</span><br><span class="line"></span><br><span class="line">pipe = Pipeline(steps=[</span><br><span class="line">              (<span class="string">'Clf'</span>, clf)</span><br><span class="line">              ])</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> sklearn.model_selection <span class="keyword">import</span> train_test_split</span><br><span class="line"></span><br><span class="line">x_train, x_test, y_train, y_test = train_test_split(x, y, test_size= <span class="number">0.5</span>, random_state= <span class="number">666</span>)</span><br><span class="line">pipe.fit(x_train, y_train)</span><br><span class="line"></span><br><span class="line">print(<span class="string">'Test accuracy is %.3f'</span> % pipe.score(x_test, y_test))</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://www.cnblogs.com/jiaxin359/p/8559029.html" target="_blank" rel="noopener">拓展阅读1</a><br><a href="https://www.jianshu.com/p/719fc024c0ec" target="_blank" rel="noopener">拓展阅读2</a></p>
+
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/6/17机器学习中的集成方法（3）--Boosting（分步法）/" rel="next" title="机器学习中的集成方法（3）--Boosting（分步法）">
+                  <i class="fa fa-chevron-left"></i> 机器学习中的集成方法（3）--Boosting（分步法）
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/6/11监督学习之支持向量机/" rel="prev" title="">
+                   <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+          <div class="post-toc">
+            <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、概念理解"><span class="nav-number">1.</span> <span class="nav-text">一、概念理解</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、执行步骤"><span class="nav-number">2.</span> <span class="nav-text">二、执行步骤</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、使用mlxtend库实现Stacking方法"><span class="nav-number">3.</span> <span class="nav-text">三、使用mlxtend库实现Stacking方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#四、使用源码实现Stacking方法"><span class="nav-number">4.</span> <span class="nav-text">四、使用源码实现Stacking方法</span></a></li></ol></div>
+          </div>
+        
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">54</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>
