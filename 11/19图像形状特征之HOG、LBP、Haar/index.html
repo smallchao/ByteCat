@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="除了霍夫变换之外，还有别的方法来提取图像空间信息。最常用到的三种空间特征分别为HOG特征、LBP特征及Haar特征。">
+<meta name="keywords" content="数据科学 比特猫 Byte猫">
+<meta property="og:type" content="article">
+<meta property="og:title" content="图像形状特征之HOG、LBP、Haar">
+<meta property="og:url" content="https://smallchao.github.io/11/19图像形状特征之HOG、LBP、Haar/index.html">
+<meta property="og:site_name" content="Byte猫">
+<meta property="og:description" content="除了霍夫变换之外，还有别的方法来提取图像空间信息。最常用到的三种空间特征分别为HOG特征、LBP特征及Haar特征。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/3084347-dc3aa96f5b5b1896.jpg">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/3084347-8f38215160179b03.jpg">
+<meta property="og:updated_time" content="2019-09-01T09:04:35.591Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="图像形状特征之HOG、LBP、Haar">
+<meta name="twitter:description" content="除了霍夫变换之外，还有别的方法来提取图像空间信息。最常用到的三种空间特征分别为HOG特征、LBP特征及Haar特征。">
+<meta name="twitter:image" content="https://smallchao.github.io/upload_images/3084347-dc3aa96f5b5b1896.jpg">
+  <link rel="canonical" href="https://smallchao.github.io/11/19图像形状特征之HOG、LBP、Haar/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>图像形状特征之HOG、LBP、Haar | Byte猫</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Byte猫</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">唤醒数据的价值</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-实用技术">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>实用技术</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据科学知识">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据科学知识</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-机器学习原理">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>机器学习原理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-半监督学习与强化学习">
+      
+    
+
+    <a href="/categories/7" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>半监督学习与强化学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-神经网络与深度学习">
+      
+    
+
+    <a href="/categories/8" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>神经网络与深度学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】个性化推荐">
+      
+    
+
+    <a href="/categories/9" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】个性化推荐</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】自然语言处理">
+      
+    
+
+    <a href="/categories/10" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】自然语言处理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】计算机视觉">
+      
+    
+
+    <a href="/categories/11" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】计算机视觉</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-模型工程化">
+      
+    
+
+    <a href="/categories/12" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>模型工程化</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/11/19图像形状特征之HOG、LBP、Haar/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Byte猫">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">图像形状特征之HOG、LBP、Haar
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-01 17:04:35" itemprop="dateModified" datetime="2019-09-01T17:04:35+08:00">2019-09-01</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">除了霍夫变换之外，还有别的方法来提取图像空间信息。最常用到的三种空间特征分别为HOG特征、LBP特征及Haar特征。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <p>除了霍夫变换之外，还有别的方法来提取图像空间信息。最常用到的三种空间特征分别为HOG特征、LBP特征及Haar特征。</p><h2 id="一、HOG特征"><a href="#一、HOG特征" class="headerlink" title="一、HOG特征"></a>一、HOG特征</h2><h4 id="1、概念与思想"><a href="#1、概念与思想" class="headerlink" title="1、概念与思想"></a>1、概念与思想</h4><p>方向梯度直方图（Histogram of Oriented Gradient, HOG）特征是一种在计算机视觉和图像处理中用来描述图像局部特征的描述子。<br>在一幅图像中，局部目标的表象和形状（appearance and shape）能够被梯度或边缘的方向密度分布很好地描述。其本质是梯度的统计信息，而梯度主要存在于边缘所在的地方。</p><a id="more"></a>
+
+<h4 id="2、特点"><a href="#2、特点" class="headerlink" title="2、特点"></a>2、特点</h4><p>与其他特征相比，HOG的优势在于能更好的描述形状，在行人识别方面有很好的效果。</p>
+<blockquote>
+<p>由于HOG是在图像的局部方格单元上操作，所以它对图像几何的和光学的形变都能保持很好的不变性，这两种形变只会出现在更大的空间领域上。其次，在粗的空域抽样、精细的方向抽样以及较强的局部光学归一化等条件下，只要行人大体上能够保持直立的姿势，可以容许行人有一些细微的肢体动作，这些细微的动作可以被忽略而不影响检测效果。</p>
+</blockquote>
+<h4 id="3、流程"><a href="#3、流程" class="headerlink" title="3、流程"></a>3、流程</h4><p>简单来说，首先需要将图像分成小的连通区域，称之为细胞单元。然后采集细胞单元中各像素点的梯度或边缘的方向直方图。最后把这些直方图组合起来就可以构成特征描述器。<br><strong>STEP 1:</strong>读入所需要的检测目标即输入的image<br><strong>STEP 2:</strong>将图像进行灰度化（将输入的彩色的图像的r,g,b值通过特定公式转换为灰度值）<br><strong>STEP 3:</strong>采用Gamma校正法对输入图像进行颜色空间的标准化（归一化）<br><strong>STEP 4:</strong>计算图像每个像素的梯度（包括大小和方向），捕获轮廓信息<br>统计每个cell的梯度直方图（不同梯度的个数），形成每个cell的descriptor<br>将每几个cell组成一个block（以3<em>3为例），一个block内所有cell的特征串联起来得到该block的HOG特征descriptor<br>*</em>STEP 5:**将图像image内所有block的HOG特征descriptor串联起来得到该image（检测目标）的HOG特征descriptor，这就是最终分类的特征向量</p>
+<h4 id="4、源码实现"><a href="#4、源码实现" class="headerlink" title="4、源码实现"></a>4、源码实现</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> math</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Hog_descriptor</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, img, cell_size=<span class="number">16</span>, bin_size=<span class="number">8</span>)</span>:</span></span><br><span class="line">        self.img = img</span><br><span class="line">        self.img = np.sqrt(img / np.max(img))</span><br><span class="line">        self.img = img * <span class="number">255</span></span><br><span class="line">        self.cell_size = cell_size</span><br><span class="line">        self.bin_size = bin_size</span><br><span class="line">        self.angle_unit = <span class="number">360</span> / self.bin_size</span><br><span class="line">        <span class="keyword">assert</span> type(self.bin_size) == int, <span class="string">"bin_size should be integer,"</span></span><br><span class="line">        <span class="keyword">assert</span> type(self.cell_size) == int, <span class="string">"cell_size should be integer,"</span></span><br><span class="line">        <span class="keyword">assert</span> type(self.angle_unit) == int, <span class="string">"bin_size should be divisible by 360"</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">extract</span><span class="params">(self)</span>:</span></span><br><span class="line">        height, width = self.img.shape</span><br><span class="line">        gradient_magnitude, gradient_angle = self.global_gradient()</span><br><span class="line">        gradient_magnitude = abs(gradient_magnitude)</span><br><span class="line">        cell_gradient_vector = np.zeros((height / self.cell_size, width / self.cell_size, self.bin_size))</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(cell_gradient_vector.shape[<span class="number">0</span>]):</span><br><span class="line">            <span class="keyword">for</span> j <span class="keyword">in</span> range(cell_gradient_vector.shape[<span class="number">1</span>]):</span><br><span class="line">                cell_magnitude = gradient_magnitude[i * self.cell_size:(i + <span class="number">1</span>) * self.cell_size,</span><br><span class="line">                                 j * self.cell_size:(j + <span class="number">1</span>) * self.cell_size]</span><br><span class="line">                cell_angle = gradient_angle[i * self.cell_size:(i + <span class="number">1</span>) * self.cell_size,</span><br><span class="line">                             j * self.cell_size:(j + <span class="number">1</span>) * self.cell_size]</span><br><span class="line">                cell_gradient_vector[i][j] = self.cell_gradient(cell_magnitude, cell_angle)</span><br><span class="line"></span><br><span class="line">        hog_image = self.render_gradient(np.zeros([height, width]), cell_gradient_vector)</span><br><span class="line">        hog_vector = []</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(cell_gradient_vector.shape[<span class="number">0</span>] - <span class="number">1</span>):</span><br><span class="line">            <span class="keyword">for</span> j <span class="keyword">in</span> range(cell_gradient_vector.shape[<span class="number">1</span>] - <span class="number">1</span>):</span><br><span class="line">                block_vector = []</span><br><span class="line">                block_vector.extend(cell_gradient_vector[i][j])</span><br><span class="line">                block_vector.extend(cell_gradient_vector[i][j + <span class="number">1</span>])</span><br><span class="line">                block_vector.extend(cell_gradient_vector[i + <span class="number">1</span>][j])</span><br><span class="line">                block_vector.extend(cell_gradient_vector[i + <span class="number">1</span>][j + <span class="number">1</span>])</span><br><span class="line">                mag = <span class="keyword">lambda</span> vector: math.sqrt(sum(i ** <span class="number">2</span> <span class="keyword">for</span> i <span class="keyword">in</span> vector))</span><br><span class="line">                magnitude = mag(block_vector)</span><br><span class="line">                <span class="keyword">if</span> magnitude != <span class="number">0</span>:</span><br><span class="line">                    normalize = <span class="keyword">lambda</span> block_vector, magnitude: [element / magnitude <span class="keyword">for</span> element <span class="keyword">in</span> block_vector]</span><br><span class="line">                    block_vector = normalize(block_vector, magnitude)</span><br><span class="line">                hog_vector.append(block_vector)</span><br><span class="line">        <span class="keyword">return</span> hog_vector, hog_image</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">global_gradient</span><span class="params">(self)</span>:</span></span><br><span class="line">        gradient_values_x = cv2.Sobel(self.img, cv2.CV_64F, <span class="number">1</span>, <span class="number">0</span>, ksize=<span class="number">5</span>)</span><br><span class="line">        gradient_values_y = cv2.Sobel(self.img, cv2.CV_64F, <span class="number">0</span>, <span class="number">1</span>, ksize=<span class="number">5</span>)</span><br><span class="line">        gradient_magnitude = cv2.addWeighted(gradient_values_x, <span class="number">0.5</span>, gradient_values_y, <span class="number">0.5</span>, <span class="number">0</span>)</span><br><span class="line">        gradient_angle = cv2.phase(gradient_values_x, gradient_values_y, angleInDegrees=<span class="literal">True</span>)</span><br><span class="line">        <span class="keyword">return</span> gradient_magnitude, gradient_angle</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">cell_gradient</span><span class="params">(self, cell_magnitude, cell_angle)</span>:</span></span><br><span class="line">        orientation_centers = [<span class="number">0</span>] * self.bin_size</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(cell_magnitude.shape[<span class="number">0</span>]):</span><br><span class="line">            <span class="keyword">for</span> j <span class="keyword">in</span> range(cell_magnitude.shape[<span class="number">1</span>]):</span><br><span class="line">                gradient_strength = cell_magnitude[i][j]</span><br><span class="line">                gradient_angle = cell_angle[i][j]</span><br><span class="line">                min_angle, max_angle, mod = self.get_closest_bins(gradient_angle)</span><br><span class="line">                orientation_centers[min_angle] += (gradient_strength * (<span class="number">1</span> - (mod / self.angle_unit)))</span><br><span class="line">                orientation_centers[max_angle] += (gradient_strength * (mod / self.angle_unit))</span><br><span class="line">        <span class="keyword">return</span> orientation_centers</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_closest_bins</span><span class="params">(self, gradient_angle)</span>:</span></span><br><span class="line">        idx = int(gradient_angle / self.angle_unit)</span><br><span class="line">        mod = gradient_angle % self.angle_unit</span><br><span class="line">        <span class="keyword">return</span> idx, (idx + <span class="number">1</span>) % self.bin_size, mod</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">render_gradient</span><span class="params">(self, image, cell_gradient)</span>:</span></span><br><span class="line">        cell_width = self.cell_size / <span class="number">2</span></span><br><span class="line">        max_mag = np.array(cell_gradient).max()</span><br><span class="line">        <span class="keyword">for</span> x <span class="keyword">in</span> range(cell_gradient.shape[<span class="number">0</span>]):</span><br><span class="line">            <span class="keyword">for</span> y <span class="keyword">in</span> range(cell_gradient.shape[<span class="number">1</span>]):</span><br><span class="line">                cell_grad = cell_gradient[x][y]</span><br><span class="line">                cell_grad /= max_mag</span><br><span class="line">                angle = <span class="number">0</span></span><br><span class="line">                angle_gap = self.angle_unit</span><br><span class="line">                <span class="keyword">for</span> magnitude <span class="keyword">in</span> cell_grad:</span><br><span class="line">                    angle_radian = math.radians(angle)</span><br><span class="line">                    x1 = int(x * self.cell_size + magnitude * cell_width * math.cos(angle_radian))</span><br><span class="line">                    y1 = int(y * self.cell_size + magnitude * cell_width * math.sin(angle_radian))</span><br><span class="line">                    x2 = int(x * self.cell_size - magnitude * cell_width * math.cos(angle_radian))</span><br><span class="line">                    y2 = int(y * self.cell_size - magnitude * cell_width * math.sin(angle_radian))</span><br><span class="line">                    cv2.line(image, (y1, x1), (y2, x2), int(<span class="number">255</span> * math.sqrt(magnitude)))</span><br><span class="line">                    angle += angle_gap</span><br><span class="line">        <span class="keyword">return</span> image</span><br><span class="line"></span><br><span class="line">img = cv2.imread(<span class="string">'person_037.png'</span>, cv2.IMREAD_GRAYSCALE)</span><br><span class="line">hog = Hog_descriptor(img, cell_size=<span class="number">8</span>, bin_size=<span class="number">8</span>)</span><br><span class="line">vector, image = hog.extract()</span><br><span class="line"><span class="keyword">print</span> np.array(vector).shape</span><br><span class="line">plt.imshow(image, cmap=plt.cm.gray)</span><br><span class="line">plt.show()</span><br></pre></td></tr></table></figure>
+
+<h4 id="5、scikit-image库中的HOG"><a href="#5、scikit-image库中的HOG" class="headerlink" title="5、scikit-image库中的HOG"></a>5、scikit-image库中的HOG</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> skimage <span class="keyword">import</span> feature <span class="keyword">as</span> ft</span><br><span class="line">features = ft.hog(image,  <span class="comment"># input image</span></span><br><span class="line">                  orientations=ori,  <span class="comment"># number of bins</span></span><br><span class="line">                  pixels_per_cell=ppc, <span class="comment"># pixel per cell</span></span><br><span class="line">                  cells_per_block=cpb, <span class="comment"># cells per blcok</span></span><br><span class="line">                  block_norm = <span class="string">'L1'</span>, <span class="comment">#  block norm : str &#123;‘L1’, ‘L1-sqrt’, ‘L2’, ‘L2-Hys’&#125;</span></span><br><span class="line">                  transform_sqrt = <span class="literal">True</span>, <span class="comment"># power law compression (also known as gamma correction)</span></span><br><span class="line">                  feature_vector=<span class="literal">True</span>, <span class="comment"># flatten the final vectors</span></span><br><span class="line">                  visualise=<span class="literal">False</span>) <span class="comment"># return HOG map</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="二、LBP特征"><a href="#二、LBP特征" class="headerlink" title="二、LBP特征"></a>二、LBP特征</h2><h4 id="1、概念与思想-1"><a href="#1、概念与思想-1" class="headerlink" title="1、概念与思想"></a>1、概念与思想</h4><p>局部二值模式（Local Binary Pattern，LBP）是一种计算机视觉和图像处理中用来描述图像局部特征的描述子。<br>其基本思想是用其中心像素的灰度值作为阈值，与它的邻域相比较得到的二进制码来表述局部纹理特征。</p>
+<p><img src="/upload_images/3084347-dc3aa96f5b5b1896.jpg" alt></p>
+<h4 id="2、特点-1"><a href="#2、特点-1" class="headerlink" title="2、特点"></a>2、特点</h4><p>与其他特征相比，LBP的优势在于能更好地描述纹理，在人脸识别方面有很好的效果，比Haar快很多倍（提取的准确率会低）因此适合用在移动设备上。</p>
+<h4 id="3、流程-1"><a href="#3、流程-1" class="headerlink" title="3、流程"></a>3、流程</h4><p><strong>STEP 1:</strong>首先将检测窗口划分为16X16的小区域（cell）<br><strong>STEP 2:</strong>对于每个cell中的一个像素，将相邻的8个像素的灰度值与其进行比较，若周围像素值大于中心像素值，则该像素点的位置被标记为1，否则为0。这样，3X3领域内的8个点经过比较可产生8位二进制数，即得到该窗口中心像素点的LBP值<br><strong>STEP 3:</strong>然后计算每个cell的直方图，即每个数字出现的频率，然后对该直方图进行归一化处理<br><strong>STEP 4:</strong>最后将得到的每个cell的统计直方图进行连接成一个特征向量，也就是整幅图的LBP纹理特征向量</p>
+<h4 id="4、源码实现-1"><a href="#4、源码实现-1" class="headerlink" title="4、源码实现"></a>4、源码实现</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> math</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 取得给定的LBP字符串的最小二进制值，实现旋转不变形</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">Rotate_LBP_Min</span><span class="params">(str_lbp_input)</span>:</span></span><br><span class="line">    str_lbp_tmp = str_lbp_input</span><br><span class="line">    MinValue = int(str_lbp_tmp, <span class="number">2</span>) <span class="comment">#转换二进制数</span></span><br><span class="line">    nLen = len(str_lbp_tmp)</span><br><span class="line">    <span class="keyword">for</span> npos <span class="keyword">in</span> range(nLen):</span><br><span class="line">        str_head = str_lbp_tmp[<span class="number">0</span>]</span><br><span class="line">        str_tail = str_lbp_tmp[<span class="number">1</span>:]</span><br><span class="line">        str_lbp_tmp = str_tail + str_head</span><br><span class="line">        CurrentValue = int(str_lbp_tmp, <span class="number">2</span>)</span><br><span class="line">        <span class="keyword">if</span> CurrentValue&lt;MinValue:</span><br><span class="line">            MinValue = CurrentValue</span><br><span class="line">    <span class="keyword">return</span> MinValue</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">LBP_Rotate</span><span class="params">(image)</span>:</span></span><br><span class="line">    H, W = image.shape[:<span class="number">2</span>]      <span class="comment">#获得图像长宽</span></span><br><span class="line">    xx = [<span class="number">-1</span>,  <span class="number">0</span>,  <span class="number">1</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">-1</span>, <span class="number">-1</span>]</span><br><span class="line">    yy = [<span class="number">-1</span>, <span class="number">-1</span>, <span class="number">-1</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>,  <span class="number">1</span>,  <span class="number">0</span>]    <span class="comment">#xx, yy 主要作用对应顺时针旋转时,相对中点的相对值.</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">#创建0数组,显而易见维度原始图像的长宽分别减去2，并且类型一定的是uint8,无符号8位,opencv图片的存储格式.</span></span><br><span class="line">    res = np.zeros(shape=(H<span class="number">-2</span>, W<span class="number">-2</span>), dtype=<span class="string">"uint8"</span>)</span><br><span class="line">    <span class="keyword">for</span> row <span class="keyword">in</span> range(<span class="number">1</span>, H - <span class="number">1</span>):</span><br><span class="line">        <span class="keyword">for</span> col <span class="keyword">in</span> range(<span class="number">1</span>, W - <span class="number">1</span>):</span><br><span class="line">            str_lbp_tmp = <span class="string">""</span> <span class="comment">#拼接二进制字符串</span></span><br><span class="line">            <span class="keyword">for</span> m <span class="keyword">in</span> range(<span class="number">0</span>, <span class="number">8</span>):</span><br><span class="line">                Xtemp = xx[m] + col   </span><br><span class="line">                Ytemp = yy[m] + row    <span class="comment">#分别获得对应坐标点</span></span><br><span class="line">                <span class="keyword">if</span> image[Ytemp, Xtemp] &gt; image[row, col]: <span class="comment">#像素比较</span></span><br><span class="line">                    str_lbp_tmp = str_lbp_tmp + <span class="string">'1'</span></span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    str_lbp_tmp = str_lbp_tmp + <span class="string">'0'</span></span><br><span class="line">            </span><br><span class="line">            res[row - <span class="number">1</span>][col - <span class="number">1</span>] =Rotate_LBP_Min(str_lbp_tmp)   <span class="comment">#写入结果中</span></span><br><span class="line">    <span class="keyword">return</span> res</span><br></pre></td></tr></table></figure>
+
+<h4 id="5、scikit-image库中的LBP"><a href="#5、scikit-image库中的LBP" class="headerlink" title="5、scikit-image库中的LBP"></a>5、scikit-image库中的LBP</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> skimage <span class="keyword">import</span> feature <span class="keyword">as</span> ft</span><br><span class="line"></span><br><span class="line">features = ft.local_binary_pattern(image,  <span class="comment"># input image</span></span><br><span class="line">                                   P=n_points,  <span class="comment"># Number of circularly symmetric neighbour set points</span></span><br><span class="line">                                   R=radius, <span class="comment"># Radius of circle</span></span><br><span class="line">                                   method=<span class="string">'default'</span>) <span class="comment"># &#123;'default', 'ror', 'uniform', 'var'&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="三、Haar特征"><a href="#三、Haar特征" class="headerlink" title="三、Haar特征"></a>三、Haar特征</h2><h4 id="1、概念与思想-2"><a href="#1、概念与思想-2" class="headerlink" title="1、概念与思想"></a>1、概念与思想</h4><p>Haar特征分为三类：边缘特征、线性特征、中心特征和对角线特征，组合成特征模板。特征模板内有白色和黑色两种矩形，并定义该模板的特征值为白色矩形像素和减去黑色矩形像素和。</p>
+<p><img src="/upload_images/3084347-8f38215160179b03.jpg" alt="在特征值的计算过程中，黑色区域的权值为负值，白色区域的权值为正值。"></p>
+<h4 id="2、特点-2"><a href="#2、特点-2" class="headerlink" title="2、特点"></a>2、特点</h4><p>与其他特征相比，Haar的优势在于能更好地描述灰度变化情况，用于检测正面的人脸（正脸由于鼻子等凸起的存在，使得脸上的光影变化十分明显）。</p>
+<h4 id="3、源码实现"><a href="#3、源码实现" class="headerlink" title="3、源码实现"></a>3、源码实现</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># coding = utf-8</span></span><br><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 计算积分图</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">integral</span><span class="params">(img)</span>:</span></span><br><span class="line">    integ_graph = np.zeros((img.shape[<span class="number">0</span>],img.shape[<span class="number">1</span>]),dtype = np.int32)</span><br><span class="line">    <span class="keyword">for</span> x <span class="keyword">in</span> range(img.shape[<span class="number">0</span>]):</span><br><span class="line">        sum_clo = <span class="number">0</span></span><br><span class="line">        <span class="keyword">for</span> y <span class="keyword">in</span> range(img.shape[<span class="number">1</span>]):</span><br><span class="line">            sum_clo = sum_clo + img[x][y]</span><br><span class="line">            integ_graph[x][y] = integ_graph[x<span class="number">-1</span>][y] + sum_clo;</span><br><span class="line">    <span class="keyword">return</span> integ_graph</span><br><span class="line"></span><br><span class="line"><span class="comment">#就算所有需要计算haar特征的区域</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">getHaarFeaturesArea</span><span class="params">(width,height)</span>:</span></span><br><span class="line">    widthLimit = width<span class="number">-1</span></span><br><span class="line">    heightLimit = height/<span class="number">2</span><span class="number">-1</span></span><br><span class="line">    features = []</span><br><span class="line">    <span class="keyword">for</span> w <span class="keyword">in</span> range(<span class="number">1</span>,int(widthLimit)):</span><br><span class="line">        <span class="keyword">for</span> h <span class="keyword">in</span> range(<span class="number">1</span>,int(heightLimit)):</span><br><span class="line">            wMoveLimit = width - w</span><br><span class="line">            hMoveLimit = height - <span class="number">2</span>*h</span><br><span class="line">            <span class="keyword">for</span> x <span class="keyword">in</span> range(<span class="number">0</span>, wMoveLimit):</span><br><span class="line">                <span class="keyword">for</span> y <span class="keyword">in</span> range(<span class="number">0</span>, hMoveLimit):</span><br><span class="line">                    features.append([x, y, w, h])</span><br><span class="line">    <span class="keyword">return</span> features</span><br><span class="line"></span><br><span class="line"><span class="comment">#通过积分图特征区域计算haar特征</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">calHaarFeatures</span><span class="params">(integral_graph,features_graph)</span>:</span></span><br><span class="line">    haarFeatures = []</span><br><span class="line">    <span class="keyword">for</span> num <span class="keyword">in</span> range(len(features_graph)):</span><br><span class="line">        <span class="comment">#计算左面的矩形区局的像素和</span></span><br><span class="line">        haar1 = integral_graph[features_graph[num][<span class="number">0</span>]][features_graph[num][<span class="number">1</span>]]-\</span><br><span class="line">        integral_graph[features_graph[num][<span class="number">0</span>]+features_graph[num][<span class="number">2</span>]][features_graph[num][<span class="number">1</span>]] -\</span><br><span class="line">        integral_graph[features_graph[num][<span class="number">0</span>]][features_graph[num][<span class="number">1</span>]+features_graph[num][<span class="number">3</span>]] +\</span><br><span class="line">        integral_graph[features_graph[num][<span class="number">0</span>]+features_graph[num][<span class="number">2</span>]][features_graph[num][<span class="number">1</span>]+features_graph[num][<span class="number">3</span>]]</span><br><span class="line">        <span class="comment">#计算右面的矩形区域的像素和</span></span><br><span class="line">        haar2 = integral_graph[features_graph[num][<span class="number">0</span>]][features_graph[num][<span class="number">1</span>]+features_graph[num][<span class="number">3</span>]]-\</span><br><span class="line">        integral_graph[features_graph[num][<span class="number">0</span>]+features_graph[num][<span class="number">2</span>]][features_graph[num][<span class="number">1</span>]+features_graph[num][<span class="number">3</span>]] -\</span><br><span class="line">        integral_graph[features_graph[num][<span class="number">0</span>]][features_graph[num][<span class="number">1</span>]+<span class="number">2</span>*features_graph[num][<span class="number">3</span>]] +\</span><br><span class="line">        integral_graph[features_graph[num][<span class="number">0</span>]+features_graph[num][<span class="number">2</span>]][features_graph[num][<span class="number">1</span>]+<span class="number">2</span>*features_graph[num][<span class="number">3</span>]]</span><br><span class="line">        <span class="comment">#右面的像素和减去左面的像素和</span></span><br><span class="line">        haarFeatures.append(haar2-haar1)</span><br><span class="line">    <span class="keyword">return</span> haarFeatures</span><br><span class="line"></span><br><span class="line">img = cv2.imread(<span class="string">"faces/face00001.bmp"</span>,<span class="number">0</span>)</span><br><span class="line">integeralGraph = integral(img)</span><br><span class="line">featureAreas = getHaarFeaturesArea(img.shape[<span class="number">0</span>],img.shape[<span class="number">1</span>])</span><br><span class="line">haarFeatures = calHaarFeatures(integeralGraph,featureAreas)</span><br><span class="line">print(haarFeatures)</span><br></pre></td></tr></table></figure>
+
+<h4 id="4、scikit-image库中的Haar"><a href="#4、scikit-image库中的Haar" class="headerlink" title="4、scikit-image库中的Haar"></a>4、scikit-image库中的Haar</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> skimage <span class="keyword">import</span> feature <span class="keyword">as</span> ft</span><br><span class="line"></span><br><span class="line">features = ft.haar_like_feature(image,  <span class="comment"># input image</span></span><br><span class="line">                                r,  <span class="comment"># Row-coordinate of top left corner of the detection window.</span></span><br><span class="line">                                c,  <span class="comment"># Column-coordinate of top left corner of the detection window.</span></span><br><span class="line">                                width,  <span class="comment"># Width of the detection window.</span></span><br><span class="line">                                height,  <span class="comment"># Height of the detection window.</span></span><br><span class="line">                                feature_type=<span class="literal">None</span> <span class="comment"># The type of feature to consider:</span></span><br><span class="line">                                )</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/11/18图像几何特征之霍夫变换/" rel="next" title="图像几何特征之霍夫变换">
+                  <i class="fa fa-chevron-left"></i> 图像几何特征之霍夫变换
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/11/20图像角点特征之Harris、SIFT、SURF、ORB/" rel="prev" title="图像角点特征之Harris、SIFT、SURF、ORB">
+                  图像角点特征之Harris、SIFT、SURF、ORB <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">93</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>
