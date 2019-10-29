@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="基于网格的聚类算法将对象空间量化为有限数量的单元，形成一个网格结构，所有的聚类都在这个网格结构上进行。它的处理速度很快，其处理时间独立于数据对象的数目。">
+<meta name="keywords" content="数据科学 比特猫 Byte猫">
+<meta property="og:type" content="article">
+<meta property="og:title" content="非监督学习之聚类算法（5）-- 基于网格">
+<meta property="og:url" content="https://smallchao.github.io/6/5非监督学习之聚类算法（5）--基于网格/index.html">
+<meta property="og:site_name" content="Byte猫">
+<meta property="og:description" content="基于网格的聚类算法将对象空间量化为有限数量的单元，形成一个网格结构，所有的聚类都在这个网格结构上进行。它的处理速度很快，其处理时间独立于数据对象的数目。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-10-29T15:24:07.554Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="非监督学习之聚类算法（5）-- 基于网格">
+<meta name="twitter:description" content="基于网格的聚类算法将对象空间量化为有限数量的单元，形成一个网格结构，所有的聚类都在这个网格结构上进行。它的处理速度很快，其处理时间独立于数据对象的数目。">
+  <link rel="canonical" href="https://smallchao.github.io/6/5非监督学习之聚类算法（5）--基于网格/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>非监督学习之聚类算法（5）-- 基于网格 | Byte猫</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Byte猫</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">唤醒数据的价值</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据科学知识">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据科学知识</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-机器学习原理">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>机器学习原理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-半监督学习与强化学习">
+      
+    
+
+    <a href="/categories/7" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>半监督学习与强化学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-神经网络与深度学习">
+      
+    
+
+    <a href="/categories/8" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>神经网络与深度学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】个性化推荐">
+      
+    
+
+    <a href="/categories/9" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】个性化推荐</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】自然语言处理">
+      
+    
+
+    <a href="/categories/a" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】自然语言处理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】计算机视觉">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】计算机视觉</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/6/5非监督学习之聚类算法（5）--基于网格/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Byte猫">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">非监督学习之聚类算法（5）-- 基于网格
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-10-29 23:24:07" itemprop="dateModified" datetime="2019-10-29T23:24:07+08:00">2019-10-29</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">基于网格的聚类算法将对象空间量化为有限数量的单元，形成一个网格结构，所有的聚类都在这个网格结构上进行。它的处理速度很快，其处理时间独立于数据对象的数目。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <p>“基于网格”指将对象空间量化为有限数量的单元，形成一个网格结构，所有的聚类都在这个网格结构上进行。基本思想是将每个属性的可能值分割成许多相邻的区间，创建网格单元的集合。每个对象落入一个网格单元，网格单元对应的属性区间包含该对象的值。<br>基于网格的聚类算法的优点是它的处理速度很快，其处理时间独立于数据对象的数目，它只与量化空间中的每一维的单元数目有关。</p><a id="more"></a>
+<h2 id="CLIQUE算法"><a href="#CLIQUE算法" class="headerlink" title="CLIQUE算法"></a>CLIQUE算法</h2><p>CLIQUE算法是基于网格的空间聚类算法，但它同时也非常好的结合了基于密度的聚类算法，因此既能够发现任意形状的簇，又可以像基于网格的算法一样处理较大的多维数据。<br>CLIQUE算法背后的直觉是存在于k维空间中的聚类也可以在k-1中找到。我们从1D开始，每个维度我们都试图找到密集网格。如果2个或更多密集网格相邻，我们将它们合并成同一个簇。<br>CLIQUE算法需要两个参数：一个是网格矩阵的边长，第二个是密度的阈值。网格步长确定了空间的划分，而密度阈值用来定义密集网格。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># coding: utf-8</span></span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> scipy.sparse.csgraph</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  辅助工具</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">read_data</span><span class="params">(delimiter, feature_columns, path)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    读取特征</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    <span class="keyword">return</span> np.genfromtxt(path, dtype=float, delimiter=delimiter, usecols=feature_columns)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">normalize_features</span><span class="params">(data)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    数据归一化</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    normalized_data = data</span><br><span class="line">    number_of_features = np.shape(normalized_data)[<span class="number">1</span>]</span><br><span class="line">    <span class="keyword">for</span> f <span class="keyword">in</span> range(number_of_features):</span><br><span class="line">        normalized_data[:, f] -= min(normalized_data[:, f]) - <span class="number">1e-5</span></span><br><span class="line">        normalized_data[:, f] *= <span class="number">1</span> / (max(normalized_data[:, f]) + <span class="number">1e-5</span>)</span><br><span class="line">    <span class="keyword">return</span> normalized_data</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">save_to_file</span><span class="params">(clusters, file_name)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    输出结果到文件</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    file = open(os.path.join(os.path.abspath(os.path.dirname(__file__)), file_name), encoding=<span class="string">'utf-8'</span>, mode=<span class="string">"w+"</span>)</span><br><span class="line">    <span class="keyword">for</span> i, c <span class="keyword">in</span> enumerate(clusters):</span><br><span class="line">        c.id = i</span><br><span class="line">        file.write(<span class="string">"Cluster "</span> + str(i) + <span class="string">":\n"</span> + str(c))</span><br><span class="line">    file.close()</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  核心算法</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">clique</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    clique网格聚类</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, data, side, threshold)</span>:</span></span><br><span class="line">        <span class="string">'''</span></span><br><span class="line"><span class="string">        参数初始化</span></span><br><span class="line"><span class="string">        '''</span></span><br><span class="line">        self.data = data</span><br><span class="line">        self.side = side</span><br><span class="line">        self.threshold = threshold</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">ClusterStructure</span>:</span></span><br><span class="line">        <span class="string">'''</span></span><br><span class="line"><span class="string">        聚类存储结构</span></span><br><span class="line"><span class="string">        '''</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, dense_units, data_point_ids)</span>:</span></span><br><span class="line">            self.id = <span class="literal">None</span></span><br><span class="line">            self.dense_units = dense_units <span class="comment"># 密度单元</span></span><br><span class="line">            self.data_point_ids = data_point_ids  <span class="comment"># 观测点id集合</span></span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">__str__</span><span class="params">(self)</span>:</span></span><br><span class="line">            <span class="keyword">return</span> <span class="string">"Dense units: "</span> + str(self.dense_units.tolist()) + <span class="string">"\nCluster size: "</span> + str(len(self.data_point_ids)) + <span class="string">"\nData points:\n"</span> + str(self.data_point_ids) + <span class="string">"\n"</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_one_dim_dense_units</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">'''</span></span><br><span class="line"><span class="string">        搜索一维密度网格</span></span><br><span class="line"><span class="string">        '''</span></span><br><span class="line">        number_of_data_points = np.shape(self.data)[<span class="number">0</span>]</span><br><span class="line">        number_of_features = np.shape(self.data)[<span class="number">1</span>]</span><br><span class="line">        projection = np.zeros((self.side, number_of_features))</span><br><span class="line">        <span class="keyword">for</span> f <span class="keyword">in</span> range(number_of_features):</span><br><span class="line">            <span class="keyword">for</span> element <span class="keyword">in</span> data[:, f]:</span><br><span class="line">                projection[int(element * self.side % self.side), f] += <span class="number">1</span></span><br><span class="line">        is_dense = projection &gt; self.threshold * number_of_data_points</span><br><span class="line">        one_dim_dense_units = []  <span class="comment"># 1D的密集网格</span></span><br><span class="line">        <span class="keyword">for</span> f <span class="keyword">in</span> range(number_of_features):</span><br><span class="line">            <span class="keyword">for</span> unit <span class="keyword">in</span> range(self.side):</span><br><span class="line">                <span class="keyword">if</span> is_dense[unit, f]:</span><br><span class="line">                    one_dim_dense_units.append([[f, unit]])</span><br><span class="line">        <span class="keyword">return</span> one_dim_dense_units</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_dense_units_for_dim</span><span class="params">(self, prev_dim_dense_units, dim)</span>:</span></span><br><span class="line">        <span class="string">'''</span></span><br><span class="line"><span class="string">        在指定维度搜索密度网格</span></span><br><span class="line"><span class="string">        '''</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">insert_if_join_condition</span><span class="params">(candidates, item, item2, current_dim)</span>:</span></span><br><span class="line">            joined = []</span><br><span class="line">            <span class="keyword">for</span> i <span class="keyword">in</span> range(len(item)):</span><br><span class="line">                joined.append(item[i])</span><br><span class="line">            <span class="keyword">for</span> i <span class="keyword">in</span> range(len(item2)):</span><br><span class="line">                joined.append(item2[i])</span><br><span class="line">            <span class="comment"># 计算维数</span></span><br><span class="line">            dims = set()</span><br><span class="line">            <span class="keyword">for</span> i <span class="keyword">in</span> range(len(joined)):</span><br><span class="line">                dims.add(int(joined[i][<span class="number">0</span>]))</span><br><span class="line">            <span class="keyword">if</span> len(dims) == current_dim:</span><br><span class="line">                candidates.append(joined)</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">self_join</span><span class="params">(prev_dim_dense_units, dim)</span>:</span></span><br><span class="line">            candidates = []</span><br><span class="line">            <span class="keyword">for</span> i <span class="keyword">in</span> range(len(prev_dim_dense_units)):</span><br><span class="line">                <span class="keyword">for</span> j <span class="keyword">in</span> range(i + <span class="number">1</span>, len(prev_dim_dense_units)):</span><br><span class="line">                    insert_if_join_condition(candidates, prev_dim_dense_units[i], prev_dim_dense_units[j], dim)</span><br><span class="line">            <span class="keyword">return</span> candidates</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">prune</span><span class="params">(candidates, prev_dim_dense_units)</span>:</span></span><br><span class="line">            <span class="keyword">for</span> i <span class="keyword">in</span> range(len(candidates)):</span><br><span class="line">                <span class="keyword">for</span> j <span class="keyword">in</span> range(len(candidates[i])):</span><br><span class="line">                    <span class="keyword">if</span> <span class="keyword">not</span> prev_dim_dense_units.__contains__([candidates[i][j]]):</span><br><span class="line">                        candidates.remove(candidates[i])</span><br><span class="line">                        <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">is_data_in_projection</span><span class="params">(tuple, candidate, r)</span>:</span></span><br><span class="line">            <span class="keyword">for</span> dim <span class="keyword">in</span> candidate:</span><br><span class="line">                element = tuple[dim[<span class="number">0</span>]]</span><br><span class="line">                <span class="keyword">if</span> int(element * r % r) != dim[<span class="number">1</span>]:</span><br><span class="line">                    <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">            <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">        </span><br><span class="line">        candidates = self_join(prev_dim_dense_units, dim)</span><br><span class="line">        prune(candidates, prev_dim_dense_units)</span><br><span class="line"></span><br><span class="line">        projection = np.zeros(len(candidates))</span><br><span class="line">        number_of_data_points = np.shape(data)[<span class="number">0</span>]</span><br><span class="line">        <span class="keyword">for</span> dataIndex <span class="keyword">in</span> range(number_of_data_points):</span><br><span class="line">            <span class="keyword">for</span> i <span class="keyword">in</span> range(len(candidates)):</span><br><span class="line">                <span class="keyword">if</span> is_data_in_projection(data[dataIndex], candidates[i], self.side):</span><br><span class="line">                    projection[i] += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        is_dense = projection &gt; self.threshold * number_of_data_points</span><br><span class="line">        <span class="keyword">return</span> np.array(candidates)[is_dense]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_clusters</span><span class="params">(self, dense_units)</span>:</span></span><br><span class="line">        <span class="string">'''</span></span><br><span class="line"><span class="string">        对密集网格进行合并</span></span><br><span class="line"><span class="string">        '''</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">build_graph_from_dense_units</span><span class="params">(dense_units)</span>:</span></span><br><span class="line">            <span class="comment"># 将密集网格转化为图</span></span><br><span class="line">            <span class="function"><span class="keyword">def</span> <span class="title">get_edge</span><span class="params">(node1, node2)</span>:</span></span><br><span class="line">                <span class="comment"># 获取两个节点之间的边</span></span><br><span class="line">                dim = len(node1)</span><br><span class="line">                distance = <span class="number">0</span></span><br><span class="line">                <span class="keyword">for</span> i <span class="keyword">in</span> range(dim):</span><br><span class="line">                    <span class="keyword">if</span> node1[i][<span class="number">0</span>] != node2[i][<span class="number">0</span>]:</span><br><span class="line">                        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">                    distance += abs(node1[i][<span class="number">1</span>] - node2[i][<span class="number">1</span>])</span><br><span class="line">                    <span class="keyword">if</span> distance &gt; <span class="number">1</span>:</span><br><span class="line">                        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">                <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">            graph = np.identity(len(dense_units))</span><br><span class="line">            <span class="keyword">for</span> i <span class="keyword">in</span> range(len(dense_units)):</span><br><span class="line">                <span class="keyword">for</span> j <span class="keyword">in</span> range(len(dense_units)):</span><br><span class="line">                    graph[i, j] = get_edge(dense_units[i], dense_units[j])</span><br><span class="line">            <span class="keyword">return</span> graph</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">get_cluster_data_point_ids</span><span class="params">(data, cluster_dense_units, xsi)</span>:</span></span><br><span class="line">            <span class="comment"># 获取聚类中点的id</span></span><br><span class="line">            point_ids = set()</span><br><span class="line">            <span class="keyword">for</span> i <span class="keyword">in</span> range(np.shape(cluster_dense_units)[<span class="number">0</span>]):</span><br><span class="line">                tmp_ids = set(range(np.shape(data)[<span class="number">0</span>]))</span><br><span class="line">                <span class="keyword">for</span> j <span class="keyword">in</span> range(np.shape(cluster_dense_units)[<span class="number">1</span>]):</span><br><span class="line">                    feature_index = cluster_dense_units[i][j][<span class="number">0</span>]</span><br><span class="line">                    range_index = cluster_dense_units[i][j][<span class="number">1</span>]</span><br><span class="line">                    tmp_ids = tmp_ids &amp; set(np.where(np.floor(data[:, feature_index] * xsi % xsi) == range_index)[<span class="number">0</span>])</span><br><span class="line">                point_ids = point_ids | tmp_ids</span><br><span class="line">            <span class="keyword">return</span> point_ids</span><br><span class="line"></span><br><span class="line">        graph = build_graph_from_dense_units(dense_units)</span><br><span class="line">        number_of_components, component_list = scipy.sparse.csgraph.connected_components(graph, directed=<span class="literal">False</span>)</span><br><span class="line"></span><br><span class="line">        dense_units = np.array(dense_units)</span><br><span class="line">        clusters = []</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(number_of_components):</span><br><span class="line">            cluster_dense_units = dense_units[np.where(component_list == i)]</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 获取聚类中点id</span></span><br><span class="line">            cluster_data_point_ids = get_cluster_data_point_ids(self.data, cluster_dense_units, self.side)</span><br><span class="line">            clusters.append(clique.ClusterStructure(cluster_dense_units, cluster_data_point_ids))</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> clusters</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="comment"># 搜索一维密集网格</span></span><br><span class="line">        dense_units = self.get_one_dim_dense_units()</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 向上合并</span></span><br><span class="line">        clusters = []</span><br><span class="line">        current_dim = <span class="number">2</span></span><br><span class="line">        number_of_features = np.shape(data)[<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">while</span> (current_dim &lt;= number_of_features) &amp; (len(dense_units) &gt; <span class="number">0</span>):</span><br><span class="line">            dense_units = self.get_dense_units_for_dim(dense_units, current_dim)</span><br><span class="line">            <span class="keyword">if</span> current_dim == number_of_features:</span><br><span class="line">                <span class="keyword">for</span> cluster <span class="keyword">in</span> self.get_clusters(dense_units):</span><br><span class="line">                    clusters.append(cluster)</span><br><span class="line">            current_dim += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> clusters</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  主程序</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 参数配置</span></span><br><span class="line">    file_name = <span class="string">"mouse.csv"</span></span><br><span class="line">    feature_columns = [<span class="number">0</span>, <span class="number">1</span>]  <span class="comment"># 特征列</span></span><br><span class="line">    side = <span class="number">3</span>  <span class="comment"># 空间棋盘尺寸</span></span><br><span class="line">    threshold = <span class="number">0.1</span>  <span class="comment"># 密度阈值</span></span><br><span class="line">    delimiter = <span class="string">' '</span> <span class="comment"># 分割符</span></span><br><span class="line">    output_file = <span class="string">"clusters.txt"</span>  <span class="comment"># 输出文件</span></span><br><span class="line"></span><br><span class="line">    print(<span class="string">"Running CLIQUE algorithm on "</span> + file_name + <span class="string">" dataset, feature columns = "</span> + str(feature_columns))</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 读取同目录下的数据文件</span></span><br><span class="line">    path = os.path.join(os.path.abspath(os.path.dirname(__file__)), file_name)</span><br><span class="line">    original_data = read_data(delimiter, feature_columns, path)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 数据归一化</span></span><br><span class="line">    data = normalize_features(original_data)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 运行clique聚类</span></span><br><span class="line">    c = clique(data=data,</span><br><span class="line">               side=side,</span><br><span class="line">               threshold=threshold)</span><br><span class="line">    clusters = c.main()</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 保存聚类结果</span></span><br><span class="line">    save_to_file(clusters, output_file)</span><br><span class="line">    print(<span class="string">"\n Clusters exported to "</span> + output_file)</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/6/4非监督学习之聚类算法（4）--基于密度/" rel="next" title="非监督学习之聚类算法（4）-- 基于密度">
+                  <i class="fa fa-chevron-left"></i> 非监督学习之聚类算法（4）-- 基于密度
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/6/6非监督学习之聚类算法（6）--基于模型/" rel="prev" title="非监督学习之聚类算法（5）-- 基于模型">
+                  非监督学习之聚类算法（5）-- 基于模型 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">128</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>
