@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="候选区域（Region Proposal），就是预先找出图中目标可能出现的位置，通过利用图像中的纹理、边缘、颜色等信息，保证在选取较少窗口（几千个甚至几百个）的情况下保持较高的召回率。 候选区域方法比传统的滑动窗口方法获取的质量要更高。">
+<meta name="keywords" content="数据科学 比特猫 Byte猫">
+<meta property="og:type" content="article">
+<meta property="og:title" content="18卷积神经网络的功能探索之目标检测（2） -- 候选区域方案">
+<meta property="og:url" content="https://smallchao.github.io/11/18.2卷积神经网络的功能探索之目标检测（2）-- 候选区域方案/index.html">
+<meta property="og:site_name" content="Byte猫">
+<meta property="og:description" content="候选区域（Region Proposal），就是预先找出图中目标可能出现的位置，通过利用图像中的纹理、边缘、颜色等信息，保证在选取较少窗口（几千个甚至几百个）的情况下保持较高的召回率。 候选区域方法比传统的滑动窗口方法获取的质量要更高。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-c04eed5cafbb4b9a.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-38d8e31b9894c9cb.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-5d40af1535357619.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-e54ed9d258f5a6ed.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-71636d8923c0916c.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-f3a7337c980c5fe4.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-f373bc6db52740d0.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-31def3f00a0db5dd.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-b8b8a437018df380.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-37b05507aa3a51ba.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-14526de523a33888.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-a9a6fcbbd01e2ffe.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-9f1bc13cce456e80.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-8a24514c6cadf11b.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-0cc2faf13bff6a48.png">
+<meta property="og:updated_time" content="2020-01-10T03:05:21.315Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="18卷积神经网络的功能探索之目标检测（2） -- 候选区域方案">
+<meta name="twitter:description" content="候选区域（Region Proposal），就是预先找出图中目标可能出现的位置，通过利用图像中的纹理、边缘、颜色等信息，保证在选取较少窗口（几千个甚至几百个）的情况下保持较高的召回率。 候选区域方法比传统的滑动窗口方法获取的质量要更高。">
+<meta name="twitter:image" content="https://smallchao.github.io/upload_images/9210113-c04eed5cafbb4b9a.png">
+  <link rel="canonical" href="https://smallchao.github.io/11/18.2卷积神经网络的功能探索之目标检测（2）-- 候选区域方案/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>18卷积神经网络的功能探索之目标检测（2） -- 候选区域方案 | Byte猫</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Byte猫</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">唤醒数据的价值</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据科学知识">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据科学知识</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-机器学习原理">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>机器学习原理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-半监督学习与强化学习">
+      
+    
+
+    <a href="/categories/7" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>半监督学习与强化学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-神经网络与深度学习">
+      
+    
+
+    <a href="/categories/8" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>神经网络与深度学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】个性化推荐">
+      
+    
+
+    <a href="/categories/9" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】个性化推荐</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】自然语言处理">
+      
+    
+
+    <a href="/categories/a" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】自然语言处理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】计算机视觉">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】计算机视觉</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/11/18.2卷积神经网络的功能探索之目标检测（2）-- 候选区域方案/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Byte猫">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">18卷积神经网络的功能探索之目标检测（2） -- 候选区域方案
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-01-10 11:05:21" itemprop="dateModified" datetime="2020-01-10T11:05:21+08:00">2020-01-10</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">候选区域（Region Proposal），就是预先找出图中目标可能出现的位置，通过利用图像中的纹理、边缘、颜色等信息，保证在选取较少窗口（几千个甚至几百个）的情况下保持较高的召回率。 候选区域方法比传统的滑动窗口方法获取的质量要更高。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <h2 id="技术路线：基于候选区域的方案"><a href="#技术路线：基于候选区域的方案" class="headerlink" title="技术路线：基于候选区域的方案"></a>技术路线：基于候选区域的方案</h2><p>候选区域（Region Proposal），就是预先找出图中目标可能出现的位置，通过利用图像中的纹理、边缘、颜色等信息，保证在选取较少窗口（几千个甚至几百个）的情况下保持较高的召回率。<br>候选区域方法比传统的滑动窗口方法获取的质量要更高。比较常用的生成候选区域的方法有：SelectiveSearch(SS，选择性搜索)、Edge Boxes（EB）、RPN网络。</p><a id="more"></a>
+<h4 id="1、R-CNN"><a href="#1、R-CNN" class="headerlink" title="1、R-CNN"></a>1、R-CNN</h4><p>该方法作为深度学习用于物体识别的开山之作，后续很多基于候选区域为基础的方法都是在该方法上进行改进得到的。该方案首先利用一种选择搜索算法（selective  search）从图中选出2000个左右的候选框，对每一个候选框内的图片缩放至指定的大小并放入CNN中进行特征提取，并将指定的特征存储下来。提取出特征后使用SVM进行分类，最后通过非极大值抑制输出结果。</p>
+<p><img src="/upload_images/9210113-c04eed5cafbb4b9a.png" alt></p>
+<blockquote>
+<p><strong>选择搜索法（selective  search）</strong><br>选择搜索算法的主要观点：图像中物体可能存在的区域应该是有某些相似性或者连续性区域的。基于这一想法采用子区域合并的方法进行提取提议边界框。首先，对输入图像用分割算法产生许多小的子区域。其次，根据这些子区域之间相似性(相似性标准主要有颜色、纹理、大小等等)进行区域合并，不断的进行区域迭代合并。每次迭代过程中对这些合并的子区域做外切矩形（bounding boxes），这些子区域外切矩形就是通常所说的提议框。它的计算效率优于滑窗法，而且由于采用子区域合并策略，所以可以包含各种大小的疑似物体框。 合并区域相似的指标多样性，提高了检测物体的概率。<br><img src="/upload_images/9210113-38d8e31b9894c9cb.png" alt><br><a href="https://www.cnblogs.com/zyly/p/9259392.html" target="_blank" rel="noopener">代码实现1</a><br><a href="https://cloud.tencent.com/developer/article/1011315" target="_blank" rel="noopener">代码实现2</a></p>
+</blockquote>
+<p>R-CNN的训练可分成下几步:<br>（1）通过选择性搜索，对待检测的图片进行搜索出约2000个候选窗口。<br>（2）把这2000个候选窗口的图片都缩放到227x227，然后分别输入CNN中（论文中使用的CNN网络是AlexNet，数据集为ImageNet），每个候选窗口提取出一个特征向量，也就是说利用CNN对每个候选窗口进行提取特征向量，并将提取到的特征存储起来。<br>（3）把上面每个候选窗口的对应特征向量，利用SVM算法进行分类识别。 </p>
+<p><img src="/upload_images/9210113-5d40af1535357619.png" alt></p>
+<p>R-CNN的缺点是计算量太大。在一张图片中，通过选择搜索法得到的有效区域往往在1000个以上，这意味着要重复计算1000多次神经网络，非常耗时。另外，在训练阶段，还需要把所有特征保存起来再通过SVM进行训练，这也是非常耗时且麻烦的。</p>
+<blockquote>
+<p><strong>创新</strong><br>使用了选择搜索法作为边框预测算法。<br>使用了CNN提取图像特征</p>
+</blockquote>
+<h4 id="2、SPP-net"><a href="#2、SPP-net" class="headerlink" title="2、SPP-net"></a>2、SPP-net</h4><p>R-CNN 需要足够多的提议窗口才能保证准确度， 而很多区域是相互重叠的。R-CNN 的训练和推理过程都很缓慢。例如，我们生成了2000个的区域提议，每个区域提议分别进入CNN。换句话说，我们对不同的候选窗口重复了进行了2000次的提取特征。<br>后来，2015年发表在IEEE上的论文《Spatial Pyramid Pooling in Deep ConvolutionalNetworks for Visual Recognition》提出了一个对R-CNN的优化措施，那就是”空间金字塔池化”。<br>空间金字塔池化的英文全称是Spatial Pyramid Pooling（简称SPP），其核心就是SPP池化层。含有SPP池化层的SPP-net不需要对每个候选区域（2000个左右）提取卷积特征图，只需要对整图提一次卷积特征图，然后将候选区域映射到卷积特征层上即可，从而提升了速度。此外，它还解决了深度网络固定输入层尺寸的这个限制，使得网络可以享受不限制输入尺寸带来的好处。</p>
+<p><img src="/upload_images/9210113-e54ed9d258f5a6ed.png" alt></p>
+<blockquote>
+<p><strong>SPP池化层实现对不同尺寸的兼容</strong><br><img src="/upload_images/9210113-71636d8923c0916c.png" alt><br>金字塔池化其实就是把每个输入的候选区域的特征图分别分成4X4=16块，2X2=4块，1X1=1块(不变），取每块的最大值作为代表，总共21块，即每张候选区域的特征图都会转换为固定的21维的特征向量。</p>
+</blockquote>
+<p>对比R-CNN，SPP-net的训练过程是：<br>（1）通过选择性搜索，对待检测的图片进行搜索出2000个候选区域。这一步和R-CNN一样。<br>（2） 特征提取阶段。这一步就是和R-CNN最大的区别了，这一步骤的具体操作是把整张待检测的图片，输入CNN中，进行一次性特征提取，得到feature maps，然后在feature maps中找到各个候选区域，再对各个候选区域采用金字塔空间池化（SPP池化层），提取出固定长度的特征向量。而R-CNN输入的是每个候选区域，然后在进入CNN，因为SPP-Net只需要一次对整张图片进行特征提取，速度会大大提升。<br>（3）最后一步也是和R-CNN一样，采用SVM算法进行特征向量分类识别。</p>
+<p><img src="/upload_images/9210113-f3a7337c980c5fe4.png" alt></p>
+<p>SPP-net对R-CNN最大的改进就是特征提取步骤做了修改，其他模块仍然和R-CNN一样。和R-CNN相比，SPP-net速度提高了百倍。</p>
+<blockquote>
+<p><strong>创新</strong><br>提出了一种从候选区域到全图特征之间的对应映射关系，通过此种映射关系可以直接获取到候选区域的特征向量(<a href="https://blog.csdn.net/qq_42013574/article/details/90140642" target="_blank" rel="noopener">了解映射方法</a>)<br>提出了一种适应不同输入尺寸提取固定长度特征的网络结构</p>
+</blockquote>
+<h4 id="3、Fast-R-CNN"><a href="#3、Fast-R-CNN" class="headerlink" title="3、Fast R-CNN"></a>3、Fast R-CNN</h4><p>Ross Girshick在2015年推出Fast R-CNN，构思精巧，流程更为紧凑，大幅提升了目标检测的速度。Fast R-CNN和R-CNN相比，测试时间从49秒减少到2.3秒。<br>相对于R-CNN与SPP-net，Fast R-CNN的主要亮点有：Fast R-CNN直接使用Softmax替代了RCNN中SVM进行分类，不再对网络进行分步训练；用ROI层代替SPP层，可以更高效地训练更新整个网络。</p>
+<blockquote>
+<p><strong>ROI池化层</strong><br><img src="/upload_images/9210113-f373bc6db52740d0.png" alt><br>ROI池化层实际上是SPP池化层的一个精简版，SPP池化层对每个候选区域使用了不同大小的金字塔映射，而ROI池化层只需要下采样到一个7x7的矩阵。<br>由于VGG16网络conv5_3有512个特征图，这样每个候选区域就对应了一个7X7X512维度的特征向量</p>
+</blockquote>
+<p><img src="/upload_images/9210113-31def3f00a0db5dd.png" alt></p>
+<blockquote>
+<p><strong>创新</strong><br>提出了ROI池化层<br>使用Softmax替代了SVM执行分类</p>
+</blockquote>
+<p>Fast-RCNN很重要的一个贡献是成功的让人们看到了Region Proposal+CNN这一框架实时检测的希望，原来多类检测真的可以在保证准确率的同时提升处理速度，也为后来的Faster-RCNN做下了铺垫。</p>
+<h4 id="4、Faster-R-CNN"><a href="#4、Faster-R-CNN" class="headerlink" title="4、Faster R-CNN"></a>4、Faster R-CNN</h4><p>Fast R-CNN测试时每张图像前馈网络只需0.2秒，但瓶颈在于提取候选区域需要2秒。Faster R-CNN不再使用现有的无监督候选区域生成算法，而引入了候选区域网络（Region Proposal Network, RPN）作为代替。RPN 快速且高效地扫描每一个位置，来评估在给定的区域内是否需要作进一步处理，其实现方式如下：通过输出 k 个边界框建议，每个边界框建议都有 2 个值——代表每个位置包含目标对象和不包含目标对象的概率。<br>Faster R-CNN的测试时间是0.2秒，接近实时。后来有研究发现，通过使用更少的候选区域，可以在性能损失不大的条件下进一步提速。</p>
+<p><img src="/upload_images/9210113-b8b8a437018df380.png" alt></p>
+<blockquote>
+<p><strong>区域提议网络(Region proposal network)</strong><br>Faster R-CNN抛弃了传统的滑动窗口和SS方法，直接使用RPN生成候选区域，这也是Faster R-CNN的巨大优势，能极大提升候选区域的生成速度。<br>RPN 会在最后卷积层的输出（一个特征图）上用滑动窗口（通常是 3x3）方法进行潜在对象检测。每个窗口，RPN会使用一组定义好的锚点框（anchors，也叫锚盒）生成多个可能的 RoI，每个 RoI 都被视为区域建议。锚点框是宽高比固定的方框，例如宽矮或高瘦方框。</p>
+<p><img src="/upload_images/9210113-37b05507aa3a51ba.png" alt="9个矩形共有3种形状，长宽比为大约为{1:1,1:2,2:1}"></p>
+<p>对于每个建议，该网络都生成一个概率 Pc，将该区域分类为对象（或非对象）区域，并包含该对象的一组边界框坐标。<br>对象概率很低的区域（例如 Pc &lt; 0.5）被丢弃。<br>所以，仅仅是个二分类而已！<br><a href="https://zhuanlan.zhihu.com/p/31426458" target="_blank" rel="noopener">了解更多</a></p>
+</blockquote>
+<p>Faster R-CNN 网络工作流如下</p>
+<p><img src="/upload_images/9210113-14526de523a33888.png" alt></p>
+<p><img src="/upload_images/9210113-a9a6fcbbd01e2ffe.png" alt></p>
+<blockquote>
+<p><strong>创新</strong><br>提出了RPN网络代替SS，实现了真正的端到端检测</p>
+</blockquote>
+<h4 id="5、R-FCN"><a href="#5、R-FCN" class="headerlink" title="5、R-FCN"></a>5、R-FCN</h4><p>RCNN 在目标检测上取得了很大的成功，比如 SPPnet、Fast R-CNN、Faster R-CNN 等，这些方法的典型特征都是一个二分网络，以 ROI池化层为界，前面子网络用于特征提取，后面子网络用于目标检测。<br>在特征提取子网络我们可以通过共用一个CNN来提升速度，那么检测子网络是否也可以这么做呢（而不是对每个候选区域都做一遍计算）？这就是设计 R-FCN 的动机：通过最大化共享计算来提升检测子网络部分的速度。<br>R-FCN即基于区域的全卷积网络 （Region-based Fully Convolutional Net），可以在每个输出之间完全共享计算。作为全卷积网络，它在模型设计过程中遇到了一个特殊的问题。<br>一方面，当对一个目标进行分类任务时，我们希望学到模型中的位置不变性（location invariance）：无论这只猫出现在图中的哪个位置，我们都想将它分类成一只猫。另一方面，当进行目标检测任务时，我们希望学习到位置可变性（location variance）：如果这只猫在左上角，那么我们希望在图像左上角这个位置画一个框。<br>所以，问题出现了，我们应该如何在位置不变性（location invariance）和位置可变性（location variance）之间做出权衡呢？<br>R-FCN 提出了一种全新的特征聚集方法，主要思想是在特征聚集时人工引入位置信息，从而有效改善较深的神经网络对物体位置信息的敏感程度。</p>
+<blockquote>
+<p><strong>位置敏感的ROI池化</strong><br>运行RPN网络，以生成候选区域。<br>对于每一个候选区域首先被平均分割成 $k^2$个子区域，然后通过一层$1x1$的卷积核生成通道数为 $k^2x(C+1)$ 的特征图。这里，$k^2$代表一个候选区域里所有子区域的数量，$(C+1)$代表所有的类别数加上背景。<br>对每个子区域，都会判断这个子区域是否匹配具体目标的对应位置，给出相应的得分。<br>对$k^2$个子区域的得分求平均，得到对应类的分数。<br>将所有类的得分组成的$(C+1)$维向量使用 softmax 回归，来对候选区域进行分类。<br><img src="/upload_images/9210113-9f1bc13cce456e80.png" alt><br><img src="/upload_images/9210113-8a24514c6cadf11b.png" alt><br>形象地说就是，在处理每个候选区域时候，我们会将其切分成多个子区域，在每个子区域上反复询问系统：「这看起来像是人脸的『上-左』部分吗？」，「这看起来像是人脸的『上-中』部分吗？」，「这看起来像是人脸的『上-右』部分吗？」等等。系统会对所有类重复这个过程。<br>如果有足够的子区域表示「是的，我的确匹配人脸的这个部分！」那么该区域就会被分类成人脸。</p>
+</blockquote>
+<p><img src="/upload_images/9210113-0cc2faf13bff6a48.png" alt></p>
+<blockquote>
+<p><strong>创新</strong><br>提出了位置敏感的ROI池化结构，在同等质量下检测速度比Faster R-CNN提升了几倍</p>
+</blockquote>
+<p>R-CNN, Fast R-CNN, Faster R-CNN, R-FCN这些算法的演进思路是逐渐提高网络中图像级别计算的比例，同时降低区域级别计算的比例。R-CNN中几乎所有的计算都是区域级别计算，而R-FCN中几乎所有的计算都是图像级别计算。</p>
+
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/11/18.1卷积神经网络的功能探索之目标检测（1）-- 滑动窗口方案/" rel="next" title="18卷积神经网络的功能探索之目标检测（1） -- 滑动窗口方案">
+                  <i class="fa fa-chevron-left"></i> 18卷积神经网络的功能探索之目标检测（1） -- 滑动窗口方案
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/11/18.3卷积神经网络的功能探索之目标检测（3）-- 直接回归方案/" rel="prev" title="18卷积神经网络的功能探索之目标检测（3） -- 直接回归方案">
+                  18卷积神经网络的功能探索之目标检测（3） -- 直接回归方案 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">138</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>

@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="基于候选区域的方法由于有两步操作，虽然检测性能比较好，但速度上离实时仍有一些差距。基于直接回归的方法不需要候选区域，直接输出分类/回归结果。这类方法由于图像只需前馈网络一次，速度通常更快，可以达到实时。">
+<meta name="keywords" content="数据科学 比特猫 Byte猫">
+<meta property="og:type" content="article">
+<meta property="og:title" content="18卷积神经网络的功能探索之目标检测（3） -- 直接回归方案">
+<meta property="og:url" content="https://smallchao.github.io/11/18.3卷积神经网络的功能探索之目标检测（3）-- 直接回归方案/index.html">
+<meta property="og:site_name" content="Byte猫">
+<meta property="og:description" content="基于候选区域的方法由于有两步操作，虽然检测性能比较好，但速度上离实时仍有一些差距。基于直接回归的方法不需要候选区域，直接输出分类/回归结果。这类方法由于图像只需前馈网络一次，速度通常更快，可以达到实时。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-2627b2b7a154d880.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-8cef38348f31f4df.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-803b7f3242c303b4.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-08cc7ab254986416.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-e172f2ed3b58d0ab.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-6b9bf906bce6bf31.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-bdc8c9407b06162d.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-a18dd9ac087b9281.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-c11664aec9a7c8c2.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-42647222ce3f444d.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-7b144f717fc60189.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-642d336b743c5904.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-887203b48ff30cc5.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-a98ae403f276ecba.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-6529d3b3d771e050.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-ce57f62d2de68698.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-285b83cf088f7907.png">
+<meta property="og:updated_time" content="2020-01-10T03:04:12.838Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="18卷积神经网络的功能探索之目标检测（3） -- 直接回归方案">
+<meta name="twitter:description" content="基于候选区域的方法由于有两步操作，虽然检测性能比较好，但速度上离实时仍有一些差距。基于直接回归的方法不需要候选区域，直接输出分类/回归结果。这类方法由于图像只需前馈网络一次，速度通常更快，可以达到实时。">
+<meta name="twitter:image" content="https://smallchao.github.io/upload_images/9210113-2627b2b7a154d880.png">
+  <link rel="canonical" href="https://smallchao.github.io/11/18.3卷积神经网络的功能探索之目标检测（3）-- 直接回归方案/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>18卷积神经网络的功能探索之目标检测（3） -- 直接回归方案 | Byte猫</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Byte猫</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">唤醒数据的价值</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据科学知识">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据科学知识</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-机器学习原理">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>机器学习原理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-半监督学习与强化学习">
+      
+    
+
+    <a href="/categories/7" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>半监督学习与强化学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-神经网络与深度学习">
+      
+    
+
+    <a href="/categories/8" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>神经网络与深度学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】个性化推荐">
+      
+    
+
+    <a href="/categories/9" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】个性化推荐</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】自然语言处理">
+      
+    
+
+    <a href="/categories/a" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】自然语言处理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】计算机视觉">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】计算机视觉</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/11/18.3卷积神经网络的功能探索之目标检测（3）-- 直接回归方案/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Byte猫">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">18卷积神经网络的功能探索之目标检测（3） -- 直接回归方案
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-01-10 11:04:12" itemprop="dateModified" datetime="2020-01-10T11:04:12+08:00">2020-01-10</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">基于候选区域的方法由于有两步操作，虽然检测性能比较好，但速度上离实时仍有一些差距。基于直接回归的方法不需要候选区域，直接输出分类/回归结果。这类方法由于图像只需前馈网络一次，速度通常更快，可以达到实时。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <h2 id="技术路线：基于直接回归的方案"><a href="#技术路线：基于直接回归的方案" class="headerlink" title="技术路线：基于直接回归的方案"></a>技术路线：基于直接回归的方案</h2><p>基于候选区域的方法由于有两步操作，虽然检测性能比较好，但速度上离实时仍有一些差距。基于直接回归的方法不需要候选区域，直接输出分类/回归结果。这类方法由于图像只需前馈网络一次，速度通常更快，可以达到实时。</p><a id="more"></a>
+<h4 id="1、YOLO-v1"><a href="#1、YOLO-v1" class="headerlink" title="1、YOLO v1"></a>1、YOLO v1</h4><p>YOLO意思是You Only Look Once，创造性的将候选区和对象识别这两个阶段合二为一，看一眼图片就能知道有哪些对象以及它们的位置。<br>它首先将图像resize到448x448作为输入，然后将图片划分为7x7的网格（grid）。物体的中心落在哪个网格，就由那个网格负责预测！所以一张图片最多能检测出49个对象，因为7x7=49。<br>每个网格允许预测出2个边框（bounding box，包含某个对象的矩形框），总共 49x2=98 个边框。可以理解为98个候选区，它们很粗略的覆盖了图片的整个区域。</p>
+<blockquote>
+<p><strong>不是Anchor！</strong><br>Faster RCNN手工设置了n个先验框（Anchor，预先设置好位置的边框）的设计，每个先验框有不同的大小和宽高比。YOLO的边框看起来很像一个网格对应2个先验框，但它们不是。YOLO并没有预先设置2个边框的大小和形状，也没有对每个边框分别输出一个对象的预测。它的意思仅仅是对一个对象预测出2个边框，选择预测得相对比较准的那个。</p>
+</blockquote>
+<p>去掉候选区这个步骤以后，YOLO的结构非常简单，就是单纯的卷积、池化最后加了两层全连接。单看网络结构的话，和普通的CNN对象分类网络几乎没有本质的区别。所以粗略来说，YOLO的整个结构就是输入图片经过神经网络的变换得到一个输出的张量，如下图所示。</p>
+<p><img src="/upload_images/9210113-2627b2b7a154d880.png" alt></p>
+<p><img src="/upload_images/9210113-8cef38348f31f4df.png" alt="先在ImageNet上做了预训练，然后在预训练得到的20层卷积层之上加上随机初始化的4个卷积层和2个全连接层。对于卷积层和全连接层，采用Leaky ReLU激活函数，但是最后一层却采用线性激活函数。由于检测任务一般需要更高清的图片，所以将网络的输入从224x224增加到了448x448。"></p>
+<p>因为只是一些常规的神经网络结构，所以，理解YOLO的设计的时候，重要的是理解输入和输出的映射关系。</p>
+<p><img src="/upload_images/9210113-803b7f3242c303b4.png" alt="输入和输出的映射关系"></p>
+<p>我们先考虑一个网格只对应一个边框的情况。</p>
+<p><img src="/upload_images/9210113-08cc7ab254986416.png" alt="置信度意味着包含对象且位置准确的程度，C1、C2、C3分别是三种分类对象的概率"></p>
+<blockquote>
+<p><strong>边框的置信度</strong><br>边框的置信度 = 该边框内存在对象的概率 * 该边框与该对象实际边框的IOU<br>用公式来表示就是：<br>$$Confidence = Pr(Object)*IOU_{pred}^{true}$$<br>综合来说，一个边框的置信度Confidence意味着它是否包含对象且位置准确的程度。置信度高表示这里存在一个对象且位置比较准确，置信度低表示可能没有对象或者即便有对象也存在较大的位置偏差。</p>
+</blockquote>
+<p><img src="/upload_images/9210113-e172f2ed3b58d0ab.png" alt="Cx,Cy表示中心点在网格内的位置"></p>
+<p><img src="/upload_images/9210113-6b9bf906bce6bf31.png" alt="w代表锚盒在图像中的宽度占比，h代表锚盒在图像中的高度占比"></p>
+<p>在分类数为3的情况下，经过神经网络对输入图像信息的提取和变换，一个网格及其周边的信息被识别和整理，最后编码到了8（5+3）维向量中。<br>如果分类数为20呢？我们会得到一个25（20+5）维向量。<br>如果一个网格对应两个边框呢？这就是30（5x2+20）维向量。</p>
+<p><img src="/upload_images/9210113-bdc8c9407b06162d.png" alt></p>
+<p>因为网格和边框设置的比较稀疏，所以这个版本的YOLO训练出来后预测的准确率和召回率都不是很理想，后续的v2、v3版本还会改进。当然，因为其速度能够满足实时处理的要求，所以对工业界还是挺有吸引力的。</p>
+<h4 id="2、SSD"><a href="#2、SSD" class="headerlink" title="2、SSD"></a>2、SSD</h4><p>SSD算法，其英文全名是Single Shot MultiBox Detector，Single shot指明了SSD算法属于one-stage方法，MultiBox指明了SSD是多框预测。<br>在YOLO v1之后SSD横空出世，它在准确度上比YOLO v1要好很多。<br>相比YOLO v1，SSD有如下特点：<br>（1）SSD采用CNN来直接进行检测，而不是像YOLO v1那样在全连接层之后做检测；<br>（2）SSD提取了不同尺度的特征图来做检测，大尺度特征图（较靠前的特征图）可以用来检测小物体，而小尺度特征图（较靠后的特征图）用来检测大物体；<br>（3）SSD采用了不同尺度和长宽比的先验框（Anchors）。<br>YOLO v1算法缺点是难以检测小目标，而且定位不准，上面的几项特性使得SSD在一定程度上克服了这些缺点。<br>SSD采用VGG16作为基础模型，然后在VGG16的基础上新增了卷积层来获得更多的特征图以用于检测。SSD与YOLO v1的网络结构对比如下图所示。上面是SSD模型，下面是YOLO v1模型，可以明显看到SSD利用了多尺度的特征图做检测。模型的输入图片大小是300×300（还可以是512×512，其与前者网络结构没有差别，只是最后新增一个卷积层）</p>
+<p><img src="/upload_images/9210113-a18dd9ac087b9281.png" alt></p>
+<h4 id="3、YOLO-v2"><a href="#3、YOLO-v2" class="headerlink" title="3、YOLO v2"></a>3、YOLO v2</h4><p>SSD的出现表明端到端的单阶段目标检测模型如果善加调理，在拥有较快速度的同时，一样可以达到与像Faster-RCNN等双阶段目标检测模型类似的准确度。<br>经过一年的蛰伏之后，YOLO v2于2016年问世。它有效地借鉴了Faster-RCNN/SSD中使用的思想。YOLO v2相对v1版本，在继续保持处理速度的基础上，三个方面进行了改进：</p>
+<p><strong>预测更准确（Better）</strong></p>
+<p>（1）使用高分辨率图像微调分类模型<br>原来的YOLO v1版本的网络在预训练的时候采用的图像输入为224x224（这是因为一般预训练的分类模型都是在ImageNet数据集上进行的），然后在检测的时候采用448x448的输入图像，这会导致从分类模型切换到检测模型的时候，模型还要适应图像分辨率的改变。<br>YOLO v2将预训练分成两步。先用224x224的输入从头开始训练网络，大概160个epoch（表示将所有训练数据循环跑160次），然后再将输入调整到448x448，再训练10个epoch。注意这两步都是在ImageNet数据集上操作。最后再在检测的数据集上微调（fine-tuning），也就是检测的时候用448x448的图像作为输入就可以顺利过渡了。YOLO的作者的实验表明这样操作可以提高3.7的mAP。<br>（2）加入了批量归一化层（Batch Normalization）<br>随着神经网络的训练，网络层的输入分布会发生变动，逐渐向激活函数取值两端靠拢，如：sigmoid激活函数，此时会进入饱和状态，梯度更新缓慢，对输入变动不敏感，甚至梯度消失导致模型难以训练。通过对网络的每一个卷积层之后激活函数之前加入BN层，可以将分布拉到均值为0，标准差为1的正态分布，从而使激活函数处于对输入值敏感的区域，从而加快模型训练，最终有2的mAP提升。此外，BN层还能起到类似dropout的正则化作用，可以从模型中去掉Dropout并使用较大的学习率而不会产生过拟合。<br>（3）采用先验框（Anchor Boxes）<br>借鉴Faster RCNN的做法，YOLO v2也尝试采用先验框（anchor）。在每个网格预先设定一组不同大小和宽高比的边框，来覆盖整个图像的不同位置和多种尺度，这些先验框作为预定义的候选区在神经网络中将检测其中是否存在对象，以及微调边框的位置。<br>同时YOLO v2移除了全连接层。另外去掉了一个池化层，使网络卷积层输出具有更高的分辨率。<br>之前YOLO v1并没有采用先验框，并且每个网格只预测两个边框，整个图像98个。YOLO v2如果每个网格采用9个先验框，总共有13x13x9=1521个先验框。所以，相对YOLO v1的81%的召回率，YOLO v2的召回率大幅提升到88%。同时有0.2的mAP轻微下降。<br>不过YOLO v2接着进一步对先验框进行了改良。<br>（4）聚类提取先验框尺度<br>之前先验框都是手工设定的，YOLO v2尝试统计出更符合样本中对象尺寸的先验框，这样就可以减少网络微调先验框到实际位置的难度。YOLO v2的做法是对训练集中标注的边框进行聚类分析，以寻找尽可能匹配样本的边框尺寸。<br>聚类算法最重要的是选择如何计算两个边框之间的”距离”，对于常用的欧式距离，大边框会产生更大的误差，但我们关心的是边框的IOU。所以，YOLO v2在聚类时采用以下公式来计算两个边框之间的”距离”。</p>
+<p>$$<br>d(box,centroid)=1-IOU(box,centroid)<br>$$</p>
+<p>centroid是聚类时被选作中心的边框，box就是其它边框，d就是两者间的”距离”。IOU越大，”距离”越近。<br>（5）约束预测边框的位置<br>作者在引入先验框的时候遇到的另一个问题是模型不稳定，尤其是在训练刚开始的时候。作者认为这种不稳定主要来自预测框的(x,y)值。其位置预测公式为：</p>
+<p>$$<br>x = （t_x<em>w_a）+x_a<br>\<br>y = （t_y</em>h_a）+y_a<br>$$</p>
+<p>其中$x$,$y$是预测边框的中心，$x_a$,$y_a$是先验框（anchor）的中心点坐标，$w_a$,$h_a$是先验框（anchor）的宽和高，$t_x$,$t_y$是要学习的参数。<br>由于$t_x$,$t_y$的取值没有任何约束，因此预测边框的中心可能出现在任何位置，训练早期阶段不容易稳定。YOLO v2调整了预测公式，将预测边框的中心约束在特定网格内。</p>
+<p>$$<br>b_x = σ（t_x）+c_x<br>\<br>b_y = σ（t_y）+c_y<br>\<br>b_w = p_w<em>e^{t_w}<br>\<br>b_h = p_h</em>e^{t_h}<br>\<br>σ(t_o) = Pr(Object)*IOU(box,object)<br>$$</p>
+<p>其中$b_x$,$b_y$,$b_w$,$b_h$是预测边框的中心和宽高，$σ(t_o)$是预测边框的置信度，$c_x$,$c_y$是当前网格左上角到图像左上角的距离，$p_w$,$p_h$是先验框的宽和高。σ是sigmoid函数。是要学习的参数，分别用于预测边框的中心和宽高，以及置信度。$t_x$,$t_y$,$t_w$,$t_h$,$t_o$是要学习的参数，分别用于预测边框的中心和宽高，以及置信度。</p>
+<p><img src="/upload_images/9210113-c11664aec9a7c8c2.png" alt></p>
+<p>根据新的计算公式，预测边框的蓝色中心点被约束在蓝色背景的网格内。约束边框位置使得模型更容易学习，且预测更为稳定。<br>（6）passthrough层检测细粒度特征<br>对象检测面临的一个问题是图像中对象会有大有小，输入图像经过多层网络提取特征，最后输出的特征图中（比如YOLO v2中输入416x416经过卷积网络下采样最后输出是13x13），较小的对象可能特征已经不明显甚至被忽略掉了。为了更好的检测出一些比较小的对象，最后输出的特征图需要保留一些更细节的信息。<br>YOLO v2引入一种称为passthrough层的方法在特征图中保留一些细节信息。具体来说，就是在最后一个pooling之前，特征图的大小是26x26x512，将其1拆4，直接传递（passthrough）到池化层后（并且又经过一组卷积）的特征图，两者叠加到一起作为输出的特征图。</p>
+<p><img src="/upload_images/9210113-42647222ce3f444d.png" alt></p>
+<p><img src="/upload_images/9210113-7b144f717fc60189.png" alt="1个4x4拆成4个2x2"></p>
+<p>根据YOLO v2的代码，特征图先用1x1卷积从 26x26x512 降维到 26x26x64，再做1拆4并passthrough。<br>passthrough层检测细粒度特征有1的mAP提升。<br>（7）多尺度图像训练<br>因为去掉了全连接层，YOLO v2可以输入任何尺寸的图像。因为整个网络下采样倍数是32，作者采用了{320,352,…,608}等10种输入图像的尺寸，这些尺寸的输入图像对应输出的特征图宽和高是{10,11,…19}。训练时每10个batch就随机更换一种尺寸，使网络能够适应各种大小的对象检测。<br>多尺度图像训练对mAP有1.4的提升。<br>（8）高分辨率图像的对象检测<br>因为YOLO v2调整网络结构后能够支持多种尺寸的输入图像（通常是使用416x416的输入图像），如果用较高分辨率的输入图像，比如544x544，则mAP可以达到78.6，有1.8的提升。</p>
+<p><strong>速度更快（Faster）</strong></p>
+<p>为了进一步提升速度，YOLO v2使用了一个新的分类网络作为特征提取部分，参考了前人的工作经验。类似于VGG，网络使用了较多的3x3卷积核，在每一次池化操作后把通道数翻倍。借鉴了network in network的思想，网络使用了全局平均池化（global average pooling）做预测，把1x1的卷积核置于3x3的卷积核之间，用来压缩特征。使用batch normalization稳定模型训练，加速收敛，正则化模型。<br>最终得出的基础模型就是Darknet-19，包含19个卷积层、5个最大值池化层（max pooling layers ）。Darknet-19处理一张照片需要55.8亿次运算，imagenet的top-1准确率为72.9%，top-5准确率为91.2%。Darknet-19的精度不弱于VGG-16，但浮点运算量减少到约1/5，提供了更快的运算速度。</p>
+<p><img src="/upload_images/9210113-642d336b743c5904.png" alt></p>
+<p><strong>识别对象更多（Stronger）</strong><br>众多周知，检测数据集的标注要比分类数据集打标签繁琐的多，所以ImageNet分类数据集比VOC等检测数据集高出几个数量级。所以在YOLO v1中，边界框的预测其实并不依赖于物体的标签，YOLO v2实现了在分类和检测数据集上的联合训练。对于检测数据集，可以用来学习预测物体的边界框、置信度以及为物体分类，而对于分类数据集可以仅用来学习分类，但是其可以大大扩充模型所能检测的物体种类。<br>……<br>虽然YOLO v2做出了一些改进，但总的来说网络结构依然很简单。就是一些卷积+pooling，从416x416x3 变换到 13x13x5x25。稍微大一点的变化是增加了batch normalization，增加了一个passthrough层，去掉了全连接层，以及采用了5个先验框。</p>
+<p><img src="/upload_images/9210113-887203b48ff30cc5.png" alt></p>
+<p>对比YOLO v1的输出张量，YOLO v2的主要变化就是会输出5个先验框，且每个先验框都会尝试预测一个对象。输出的 13x13x5x25 张量中，25维向量包含20个对象的分类概率+4个边框坐标+1个边框置信度。</p>
+<h4 id="4、YOLO-v3"><a href="#4、YOLO-v3" class="headerlink" title="4、YOLO v3"></a>4、YOLO v3</h4><p>作为YOLO系列目前最新的算法，YOLO v3 的模型比YOLO v2既有保留又有改进。<br>（1）网络结构</p>
+<p><img src="/upload_images/9210113-a98ae403f276ecba.png" alt></p>
+<p>YOLO每一代的提升很大一部分决定于骨干（backbone）网络的提升，从v2的darknet-19到v3的darknet-53。yolo_v3还提供可替换的backbone——tiny darknet。要想性能牛叉，backbone可以用Darknet-53，要想轻量高速，可以用tiny-darknet。</p>
+<p><img src="/upload_images/9210113-6529d3b3d771e050.png" alt="darknet-53"></p>
+<p>darknet-53是可以和resnet-152正面刚的backbone。darknet-53与resnet-152具有相似的性能，速度提高2倍。darknet-53也可以实现每秒最高的测量浮点运算。这意味着网络结构可以更好地利用GPU，从而使其评估效率更高，速度更快。这主要是因为ResNets的层数太多，效率不高。</p>
+<p>（2）多尺度特征进行对象检测</p>
+<p><img src="/upload_images/9210113-ce57f62d2de68698.png" alt></p>
+<p>YOLO2曾采用passthrough结构来检测细粒度特征，在YOLO3更进一步采用了3个不同尺度的特征图来进行对象检测。<br>结合上图看，卷积网络在79层后，经过下方几个黄色的卷积层得到一种尺度的检测结果。相比输入图像，这里用于检测的特征图有32倍的下采样。由于下采样倍数高，这里特征图的感受野比较大，因此适合检测图像中尺寸比较大的对象。<br>为了实现细粒度的检测，第79层的特征图又开始作上采样（从79层往右开始上采样卷积），然后与第61层特征图融合（Concatenation），这样得到第91层较细粒度的特征图，同样经过几个卷积层后得到相对输入图像16倍下采样的特征图。它具有中等尺度的感受野，适合检测中等尺度的对象。<br>最后，第91层特征图再次上采样，并与第36层特征图融合（Concatenation），最后得到相对输入图像8倍下采样的特征图。它的感受野最小，适合检测小尺寸的对象。</p>
+<p><img src="/upload_images/9210113-285b83cf088f7907.png" alt></p>
+<p>随着输出的特征图的数量和尺度的变化，先验框的尺寸也需要相应的调整。YOLO v2已经开始采用K-means聚类得到先验框的尺寸，YOLO v3延续了这种方法，为每种下采样尺度设定3种先验框，总共聚类出9种尺寸的先验框。在COCO数据集这9个先验框是：(10x13)，(16x30)，(33x23)，(30x61)，(62x45)，(59x119)，(116x90)，(156x198)，(373x326)。<br>分配上，在最小的13x13特征图上（有最大的感受野）应用较大的先验框(116x90)，(156x198)，(373x326)，适合检测较大的对象。中等的26x26特征图上（中等感受野）应用中等的先验框(30x61)，(62x45)，(59x119)，适合检测中等大小的对象。较大的52x52特征图上（较小的感受野）应用较小的先验框(10x13)，(16x30)，(33x23)，适合检测较小的对象。<br>我们算一下YOLO v3共可以检测了多少个目标。对于一个416x416的输入图像，在每个尺度的特征图的每个网格设置3个先验框，总共有 13x13x3 + 26x26x3 + 52x52x3 = 10647 个预测。<br>对比一下，YOLO v2采用13x13x5 = 845个预测，YOLO3的尝试预测边框数量增加了10多倍，而且是在不同分辨率上进行，所以mAP以及对小物体的检测效果有一定的提升。<br>（3）对象分类softmax改成logistic<br>预测对象类别时不使用softmax，改成使用logistic的输出进行预测。这样能够支持多标签对象（比如一个人有Woman 和 Person两个标签）。</p>
+
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/11/18.2卷积神经网络的功能探索之目标检测（2）-- 候选区域方案/" rel="next" title="18卷积神经网络的功能探索之目标检测（2） -- 候选区域方案">
+                  <i class="fa fa-chevron-left"></i> 18卷积神经网络的功能探索之目标检测（2） -- 候选区域方案
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">138</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+    
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>
