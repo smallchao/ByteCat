@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="角点检测(Corner Detection)是计算机视觉系统中用来获得图像特征的一种方法，广泛应用于运动检测、图像匹配、视频跟踪、三维建模和目标识别等领域中，也称为特征点检测。">
+<meta name="keywords" content="数据科学 比特猫 Byte猫">
+<meta property="og:type" content="article">
+<meta property="og:title" content="图像角点特征之Harris、SIFT、SURF、ORB">
+<meta property="og:url" content="https://smallchao.github.io/12/12图像角点特征之Harris、SIFT、SURF、ORB/index.html">
+<meta property="og:site_name" content="Byte猫">
+<meta property="og:description" content="角点检测(Corner Detection)是计算机视觉系统中用来获得图像特征的一种方法，广泛应用于运动检测、图像匹配、视频跟踪、三维建模和目标识别等领域中，也称为特征点检测。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-a925eda12fe9b43d.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-a210822c033b1198.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-de99a59aa7924c7f.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-97c9f646d12ba383.png">
+<meta property="og:updated_time" content="2020-01-17T03:26:15.926Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="图像角点特征之Harris、SIFT、SURF、ORB">
+<meta name="twitter:description" content="角点检测(Corner Detection)是计算机视觉系统中用来获得图像特征的一种方法，广泛应用于运动检测、图像匹配、视频跟踪、三维建模和目标识别等领域中，也称为特征点检测。">
+<meta name="twitter:image" content="https://smallchao.github.io/upload_images/9210113-a925eda12fe9b43d.png">
+  <link rel="canonical" href="https://smallchao.github.io/12/12图像角点特征之Harris、SIFT、SURF、ORB/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>图像角点特征之Harris、SIFT、SURF、ORB | Byte猫</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Byte猫</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">唤醒数据的价值</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据科学知识">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据科学知识</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-机器学习原理">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>机器学习原理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-神经网络与深度学习">
+      
+    
+
+    <a href="/categories/7" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>神经网络与深度学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】半监督学习">
+      
+    
+
+    <a href="/categories/8" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】半监督学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】个性化推荐">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】个性化推荐</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】自然语言处理">
+      
+    
+
+    <a href="/categories/c" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】自然语言处理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】计算机视觉">
+      
+    
+
+    <a href="/categories/d" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】计算机视觉</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/12/12图像角点特征之Harris、SIFT、SURF、ORB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Byte猫">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">图像角点特征之Harris、SIFT、SURF、ORB
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-01-17 11:26:15" itemprop="dateModified" datetime="2020-01-17T11:26:15+08:00">2020-01-17</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">角点检测(Corner Detection)是计算机视觉系统中用来获得图像特征的一种方法，广泛应用于运动检测、图像匹配、视频跟踪、三维建模和目标识别等领域中，也称为特征点检测。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <p>角点检测(Corner Detection)是计算机视觉系统中用来获得图像特征的一种方法，广泛应用于运动检测、图像匹配、视频跟踪、三维建模和目标识别等领域中，也称为特征点检测。 角点通常被定义为两条边的交点，更严格的说，角点的局部邻域应该具有两个不同区域的不同方向的边界。而实际应用中，大多数所谓的角点检测方法检测的是拥有特定特征的图像点，而不仅仅是“角点”。这些特征点在图像中有具体的坐标，并具有某些数学特征，如局部最大或最小灰度、某些梯度特征等。</p><a id="more"></a>
+<p><img src="/upload_images/9210113-a925eda12fe9b43d.png" alt></p>
+<p>这些角点通常在图像中是稳定存在的。角点的微小偏移就能反映出图像帧的相对运动。</p>
+<h2 id="一、Harris角点"><a href="#一、Harris角点" class="headerlink" title="一、Harris角点"></a>一、Harris角点</h2><p>Harris角点检测算法就是对角点响应函数R进行阈值处理：R &gt; threshold，即提取R的局部极大值。<br>特点：具有角度不变性</p>
+<h4 id="1、OpenCV版本"><a href="#1、OpenCV版本" class="headerlink" title="1、OpenCV版本"></a>1、OpenCV版本</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># coding = utf-8</span></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> cv2 <span class="keyword">as</span> cv</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 导入资源</span></span><br><span class="line">image = cv.imread(<span class="string">'123.jpg'</span>)</span><br><span class="line">image_copy = np.copy(image)</span><br><span class="line">image_copy = cv.cvtColor(image_copy, cv.COLOR_BGR2RGB)</span><br><span class="line">gray = cv.cvtColor(image_copy, cv.COLOR_RGB2GRAY)</span><br><span class="line">gray = np.float32(gray)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检测角点</span></span><br><span class="line">dst = cv.cornerHarris(gray, <span class="number">2</span>, <span class="number">3</span>, <span class="number">0.04</span>)</span><br><span class="line">dst = cv.dilate(dst, <span class="literal">None</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 提取并显示强角点</span></span><br><span class="line">thresh = <span class="number">0.1</span>*dst.max()</span><br><span class="line">corner_image = np.copy(image_copy)</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> j <span class="keyword">in</span> range(<span class="number">0</span>, dst.shape[<span class="number">0</span>]):</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">0</span>, dst.shape[<span class="number">1</span>]):</span><br><span class="line">        <span class="keyword">if</span>(dst[j,i] &gt; thresh):</span><br><span class="line">            <span class="comment"># image, center pt, radius, color, thickness</span></span><br><span class="line">            cv.circle(corner_image, (i, j), <span class="number">1</span>, (<span class="number">0</span>,<span class="number">255</span>,<span class="number">0</span>), <span class="number">1</span>)</span><br><span class="line">			</span><br><span class="line">plt.imshow(corner_image)</span><br><span class="line">plt.show()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/upload_images/9210113-a210822c033b1198.png" alt></p>
+<h4 id="2、源码版本"><a href="#2、源码版本" class="headerlink" title="2、源码版本"></a>2、源码版本</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># coding = utf-8</span></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> cv2 <span class="keyword">as</span> cv</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> PIL <span class="keyword">import</span> Image</span><br><span class="line"><span class="keyword">from</span> skimage <span class="keyword">import</span> filters</span><br><span class="line"><span class="keyword">from</span> datetime <span class="keyword">import</span> datetime</span><br><span class="line"></span><br><span class="line">WITH_NMS = <span class="literal">False</span>                  <span class="comment"># 是否非极大值抑制，True/False</span></span><br><span class="line">k = <span class="number">0.04</span>                          <span class="comment"># 响应函数参数k</span></span><br><span class="line">threshold = <span class="number">0.01</span>                  <span class="comment"># 界定阈值</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 导入资源</span></span><br><span class="line">image = cv.imread(<span class="string">'123.jpg'</span>)</span><br><span class="line">image_copy = np.copy(image)</span><br><span class="line">image_copy = cv.cvtColor(image_copy, cv.COLOR_BGR2RGB)</span><br><span class="line">gray = cv.cvtColor(image_copy, cv.COLOR_RGB2GRAY)</span><br><span class="line">gray = np.float32(gray)</span><br><span class="line">img_num = np.pad(np.asarray(gray, dtype=np.float32), ((<span class="number">1</span>, <span class="number">1</span>), (<span class="number">1</span>, <span class="number">1</span>)), <span class="string">'constant'</span>)</span><br><span class="line">h, w = img_num.shape  <span class="comment"># padding之后的图像尺寸</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 计算Ix,Iy</span></span><br><span class="line">grad = np.empty([h, w, <span class="number">2</span>], dtype=np.float)</span><br><span class="line">grad[:, <span class="number">1</span>:<span class="number">-1</span>, <span class="number">0</span>] = img_num[:, <span class="number">2</span>:] - img_num[:, :<span class="number">-2</span>]  <span class="comment"># Ix</span></span><br><span class="line">grad[<span class="number">1</span>:<span class="number">-1</span>, :, <span class="number">1</span>] = img_num[<span class="number">2</span>:, :] - img_num[:<span class="number">-2</span>, :]  <span class="comment"># Iy</span></span><br><span class="line"> </span><br><span class="line"><span class="comment"># 计算Ixx,Iyy,Ixy</span></span><br><span class="line">m = np.empty([h, w, <span class="number">3</span>], dtype=np.float)</span><br><span class="line">m[:, :, <span class="number">0</span>] = filters.gaussian(grad[:, :, <span class="number">0</span>]**<span class="number">2</span>, sigma=<span class="number">2</span>)  <span class="comment"># Ixx</span></span><br><span class="line">m[:, :, <span class="number">1</span>] = filters.gaussian(grad[:, :, <span class="number">1</span>]**<span class="number">2</span>, sigma=<span class="number">2</span>)  <span class="comment"># Iyy</span></span><br><span class="line">m[:, :, <span class="number">2</span>] = filters.gaussian(grad[:, :, <span class="number">0</span>]*grad[:, :, <span class="number">1</span>], sigma=<span class="number">2</span>)  <span class="comment"># Ixy</span></span><br><span class="line">m = [np.array([[m[i, j, <span class="number">0</span>], m[i, j, <span class="number">2</span>]],</span><br><span class="line">               [m[i, j, <span class="number">2</span>], m[i, j, <span class="number">1</span>]]]) <span class="keyword">for</span> i <span class="keyword">in</span> range(h) <span class="keyword">for</span> j <span class="keyword">in</span> range(w)]</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 记录一下R计算时耗</span></span><br><span class="line">start = datetime.now()</span><br><span class="line">D, T = list(map(np.linalg.det, m)), list(map(np.trace, m))</span><br><span class="line">R = np.array([d-k*t**<span class="number">2</span> <span class="keyword">for</span> d, t <span class="keyword">in</span> zip(D, T)])</span><br><span class="line">end = datetime.now()</span><br><span class="line">print(end-start)</span><br><span class="line"> </span><br><span class="line">R_max = np.max(R)</span><br><span class="line">R = R.reshape(h, w)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 标注角点</span></span><br><span class="line">record = np.zeros_like(R, dtype=np.int)</span><br><span class="line">img_row = np.pad(np.asarray(image_copy, dtype=np.float32), ((<span class="number">1</span>, <span class="number">1</span>), (<span class="number">1</span>, <span class="number">1</span>), (<span class="number">0</span>, <span class="number">0</span>)), <span class="string">'constant'</span>)</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">1</span>, h<span class="number">-2</span>):</span><br><span class="line">    <span class="keyword">for</span> j <span class="keyword">in</span> range(<span class="number">1</span>, w<span class="number">-2</span>):</span><br><span class="line">        <span class="keyword">if</span> WITH_NMS:</span><br><span class="line">            <span class="keyword">if</span> R[i, j] &gt; R_max*threshold <span class="keyword">and</span> R[i, j] == np.max(R[i<span class="number">-1</span>:i+<span class="number">2</span>, j<span class="number">-1</span>:j+<span class="number">2</span>]):</span><br><span class="line">                record[i, j] = <span class="number">255</span></span><br><span class="line">                img_row[i, j] = [<span class="number">255</span>, <span class="number">255</span>, <span class="number">255</span>]</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">if</span> R[i, j] &gt; R_max*<span class="number">0.01</span>:</span><br><span class="line">                record[i, j] = <span class="number">255</span></span><br><span class="line">                img_row[i, j] = [<span class="number">255</span>, <span class="number">255</span>, <span class="number">255</span>]</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 图像展示与保存</span></span><br><span class="line">res = Image.fromarray(np.uint8(record[<span class="number">1</span>:<span class="number">-1</span>, <span class="number">1</span>:<span class="number">-1</span>]))</span><br><span class="line">img_row = Image.fromarray(np.uint8(img_row[<span class="number">1</span>:<span class="number">-1</span>, <span class="number">1</span>:<span class="number">-1</span>]))</span><br><span class="line"> </span><br><span class="line">plt.imshow(img_row)</span><br><span class="line">plt.show()</span><br></pre></td></tr></table></figure>
+
+<h2 id="二、SIFT角点"><a href="#二、SIFT角点" class="headerlink" title="二、SIFT角点"></a>二、SIFT角点</h2><p>SIFT克服了Harris的不足，缩放也没影响，具有尺度不变性。<br>特点：角度不变性，尺度不变性</p>
+<h4 id="1、OpenCV版本-1"><a href="#1、OpenCV版本-1" class="headerlink" title="1、OpenCV版本"></a>1、OpenCV版本</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># coding = utf-8</span></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> cv2 <span class="keyword">as</span> cv</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 导入资源</span></span><br><span class="line">image = cv.imread(<span class="string">'123.jpg'</span>)</span><br><span class="line">image_copy = np.copy(image)</span><br><span class="line">image_copy = cv.cvtColor(image_copy, cv.COLOR_BGR2RGB)</span><br><span class="line">gray = cv.cvtColor(image_copy, cv.COLOR_RGB2GRAY)</span><br><span class="line">gray = np.float32(gray)</span><br><span class="line"></span><br><span class="line"><span class="comment"># SIFT角点检测</span></span><br><span class="line">sift = cv.xfeatures2d.SIFT_create()</span><br><span class="line"><span class="comment"># 找到关键点和描述符</span></span><br><span class="line">keypoints, des = sift.detectAndCompute(gray, <span class="literal">None</span>) </span><br><span class="line"></span><br><span class="line"><span class="comment"># 把特征点标记到图片上</span></span><br><span class="line">corner_image = np.copy(image_copy)</span><br><span class="line"><span class="keyword">for</span> point <span class="keyword">in</span> keypoints:</span><br><span class="line">    cv.circle(corner_image, (int(point.pt[<span class="number">0</span>]), int(point.pt[<span class="number">1</span>])), <span class="number">1</span>, (<span class="number">0</span>,<span class="number">255</span>,<span class="number">0</span>), <span class="number">1</span>)</span><br><span class="line">plt.imshow(img)</span><br><span class="line">plt.show()</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、SURF角点"><a href="#三、SURF角点" class="headerlink" title="三、SURF角点"></a>三、SURF角点</h2><p>SURF是SIFT的加速版，它善于处理具有模糊和旋转的图像，但是不善于处理视角变化和光照变化。在SIFT中使用DoG对LoG进行近似，而在SURF中使用盒子滤波器对LoG进行近似，这样就可以使用积分图像了（计算图像中某个窗口内所有像素和时，计算量的大小与窗口大小无关）。总之，SURF最大的特点在于采用了Haar特征以及积分图像的概念，大大加快了程序的运行效率。<br>特点：角度不变性，尺度不变性</p>
+<h4 id="1、OpenCV版本-2"><a href="#1、OpenCV版本-2" class="headerlink" title="1、OpenCV版本"></a>1、OpenCV版本</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># coding = utf-8</span></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> cv2 <span class="keyword">as</span> cv</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 导入资源</span></span><br><span class="line">image = cv.imread(<span class="string">'123.jpg'</span>)</span><br><span class="line">image_copy = np.copy(image)</span><br><span class="line">image_copy = cv.cvtColor(image_copy, cv.COLOR_BGR2RGB)</span><br><span class="line">gray = cv.cvtColor(image_copy, cv.COLOR_RGB2GRAY)</span><br><span class="line">gray = np.float32(gray)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 参数为hessian矩阵的阈值</span></span><br><span class="line">surf = cv.xfeatures2d.SURF_create(<span class="number">400</span>)</span><br><span class="line"><span class="comment"># 设置是否要检测方向</span></span><br><span class="line">surf.setUpright(<span class="literal">True</span>)</span><br><span class="line"><span class="comment"># 找到关键点和描述符</span></span><br><span class="line">keypoints, des = surf.detectAndCompute(gray, <span class="literal">None</span>) </span><br><span class="line"></span><br><span class="line"><span class="comment"># 把特征点标记到图片上</span></span><br><span class="line">corner_image = np.copy(image_copy)</span><br><span class="line"><span class="keyword">for</span> point <span class="keyword">in</span> keypoints:</span><br><span class="line">    cv.circle(corner_image, (int(point.pt[<span class="number">0</span>]), int(point.pt[<span class="number">1</span>])), <span class="number">1</span>, (<span class="number">0</span>,<span class="number">255</span>,<span class="number">0</span>), <span class="number">1</span>)</span><br><span class="line">plt.imshow(corner_image)</span><br><span class="line">plt.show()</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://www.jianshu.com/p/6aee43c6f2ac" target="_blank" rel="noopener">更多</a></p>
+<h2 id="四、ORB角点"><a href="#四、ORB角点" class="headerlink" title="四、ORB角点"></a>四、ORB角点</h2><p>ORB（Oriented FASTand Rotated BRIEF）算法是目前最快速稳定的特征点检测和提取算法，许多图像拼接和目标追踪技术利用ORB特征进行实现。<br>ORB采用FAST（features from accelerated segment test）算法来检测特征点，采用BRIEF算法来计算一个特征点的描述子。<br>特点：角度不变性，尺度不变性，计算速度快（ORB是sift的100倍，是surf的10倍）</p>
+<h4 id="1、图像金字塔"><a href="#1、图像金字塔" class="headerlink" title="1、图像金字塔"></a>1、图像金字塔</h4><p>ORB算法采用了图像金字塔技术。所谓图像金字塔，是在保持观测窗口不变的情况下，获得输入图像在不同尺寸（分辨率）下的表达，在不同尺寸上提取到的特征在整体上做到了尺寸（分辨率）无关。实际使用中，一般采用2倍下采样，即金字塔中图像长宽逐层折半。</p>
+<p><img src="/upload_images/9210113-de99a59aa7924c7f.png" alt></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">import</span> cv2 <span class="keyword">as</span> cv</span><br><span class="line"></span><br><span class="line">image = cv.imread(<span class="string">'images/rainbow_flag.jpg'</span>)</span><br><span class="line">image = cv.cvtColor(image, cv.COLOR_BGR2RGB)</span><br><span class="line"></span><br><span class="line">level_1 = cv.pyrDown(image)</span><br><span class="line">level_2 = cv.pyrDown(level_1)</span><br><span class="line">level_3 = cv.pyrDown(level_2)</span><br><span class="line"></span><br><span class="line">f, (ax1,ax2,ax3,ax4) = plt.subplots(<span class="number">1</span>, <span class="number">4</span>, figsize=(<span class="number">20</span>,<span class="number">10</span>))</span><br><span class="line"></span><br><span class="line">ax1.set_title(<span class="string">'original'</span>)</span><br><span class="line">ax1.imshow(image)</span><br><span class="line"></span><br><span class="line">ax2.imshow(level_1)</span><br><span class="line">ax2.set_xlim([<span class="number">0</span>, image.shape[<span class="number">1</span>]])</span><br><span class="line">ax2.set_ylim([image.shape[<span class="number">0</span>], <span class="number">0</span>])</span><br><span class="line"></span><br><span class="line">ax3.imshow(level_2)</span><br><span class="line">ax3.set_xlim([<span class="number">0</span>, image.shape[<span class="number">1</span>]])</span><br><span class="line">ax3.set_ylim([image.shape[<span class="number">0</span>], <span class="number">0</span>])</span><br><span class="line"></span><br><span class="line">ax4.imshow(level_3)</span><br><span class="line">ax4.set_xlim([<span class="number">0</span>, image.shape[<span class="number">1</span>]])</span><br><span class="line">ax4.set_ylim([image.shape[<span class="number">0</span>], <span class="number">0</span>])</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://www.cnblogs.com/shine-lee/p/10037463.html" target="_blank" rel="noopener">了解更多</a></p>
+<h4 id="2、OpenCV版本的ORB角点检测"><a href="#2、OpenCV版本的ORB角点检测" class="headerlink" title="2、OpenCV版本的ORB角点检测"></a>2、OpenCV版本的ORB角点检测</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># coding = utf-8</span></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> cv2 <span class="keyword">as</span> cv</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> mahotas.features <span class="keyword">import</span> surf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 导入资源</span></span><br><span class="line">image = cv.imread(<span class="string">'123.jpg'</span>)</span><br><span class="line">image_copy = np.copy(image)</span><br><span class="line">image_copy = cv.cvtColor(image_copy, cv.COLOR_BGR2RGB)</span><br><span class="line">gray = cv.cvtColor(image_copy, cv.COLOR_RGB2GRAY)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检测角点</span></span><br><span class="line">orb = cv.ORB_create(<span class="number">200</span>, <span class="number">2.0</span>)</span><br><span class="line">keypoints, desc = orb.detectAndCompute(gray, <span class="literal">None</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 绘制角点</span></span><br><span class="line">corner_image = np.copy(image_copy)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">draw_keypoints</span><span class="params">(img, keypoints, color = <span class="params">(<span class="number">0</span>, <span class="number">255</span>, <span class="number">0</span>)</span>)</span>:</span></span><br><span class="line">    <span class="keyword">for</span> kp <span class="keyword">in</span> keypoints:</span><br><span class="line">        x, y = kp.pt</span><br><span class="line">        cv.circle(img, (int(x), int(y)), <span class="number">2</span>, color)</span><br><span class="line"></span><br><span class="line">draw_keypoints(corner_image, keypoints)</span><br><span class="line"></span><br><span class="line">plt.imshow(corner_image)</span><br><span class="line">plt.show()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/upload_images/9210113-97c9f646d12ba383.png" alt></p>
+
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/12/11图像形状特征之HOG、LBP、Haar/" rel="next" title="图像形状特征之HOG、LBP、Haar">
+                  <i class="fa fa-chevron-left"></i> 图像形状特征之HOG、LBP、Haar
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/12/13角点配对与图像匹配/" rel="prev" title="角点配对与图像匹配">
+                  角点配对与图像匹配 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">140</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>
