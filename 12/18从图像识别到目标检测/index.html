@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="图像识别解决了是什么的问题，目标检测解决了在哪里的问题。简单来说就是在图像识别的基础上，以包围盒（bounding box）的形式把物体框出来。">
+<meta name="keywords" content="数据科学 比特猫 Byte猫">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从图像识别到目标检测">
+<meta property="og:url" content="https://smallchao.github.io/12/18从图像识别到目标检测/index.html">
+<meta property="og:site_name" content="Byte猫">
+<meta property="og:description" content="图像识别解决了是什么的问题，目标检测解决了在哪里的问题。简单来说就是在图像识别的基础上，以包围盒（bounding box）的形式把物体框出来。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-9a6f73c4ff642bff.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/98230130.jpg">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/20190401130621335.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-b43848fa71b9a4d8.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/20180726085031749.png">
+<meta property="og:updated_time" content="2020-01-26T16:29:10.525Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="从图像识别到目标检测">
+<meta name="twitter:description" content="图像识别解决了是什么的问题，目标检测解决了在哪里的问题。简单来说就是在图像识别的基础上，以包围盒（bounding box）的形式把物体框出来。">
+<meta name="twitter:image" content="https://smallchao.github.io/upload_images/9210113-9a6f73c4ff642bff.png">
+  <link rel="canonical" href="https://smallchao.github.io/12/18从图像识别到目标检测/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>从图像识别到目标检测 | Byte猫</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Byte猫</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">唤醒数据的价值</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据科学知识">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据科学知识</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-机器学习原理">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>机器学习原理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-神经网络与深度学习">
+      
+    
+
+    <a href="/categories/7" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>神经网络与深度学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】半监督学习">
+      
+    
+
+    <a href="/categories/8" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】半监督学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】个性化推荐">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】个性化推荐</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】自然语言处理">
+      
+    
+
+    <a href="/categories/c" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】自然语言处理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】计算机视觉">
+      
+    
+
+    <a href="/categories/d" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】计算机视觉</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/12/18从图像识别到目标检测/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Byte猫">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">从图像识别到目标检测
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-01-27 00:29:10" itemprop="dateModified" datetime="2020-01-27T00:29:10+08:00">2020-01-27</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">图像识别解决了是什么的问题，目标检测解决了在哪里的问题。简单来说就是在图像识别的基础上，以包围盒（bounding box）的形式把物体框出来。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <p>图像识别是将图像划分为单个类别，通常对应于图像中最突出的物体。但是现实世界的很多图像通常包含的不只是一个物体，此时如果使用图像识别模型为图像分配一个单一标签其实是非常粗糙的，并不准确。对于这样的情况，就需要目标检测（object detection）。<br>目标检测简单来说就是在图像识别的基础上，以包围盒（bounding box）的形式把物体框出来。目标检测在很多场景有用，如无人驾驶和安防系统。 </p><a id="more"></a>
+<p><img src="/upload_images/9210113-9a6f73c4ff642bff.png" alt></p>
+<h2 id="一、目标检测的基本概念"><a href="#一、目标检测的基本概念" class="headerlink" title="一、目标检测的基本概念"></a>一、目标检测的基本概念</h2><h4 id="1、bbox（包围盒）"><a href="#1、bbox（包围盒）" class="headerlink" title="1、bbox（包围盒）"></a>1、bbox（包围盒）</h4><p>bbox（bounding box）是定位任务里的概念，即给出物体在图片中的定位区域。一般表示为(xmin, ymin, xmax, ymax)。(xmin, ymin)为bbox左下角的坐标，(xmax, ymax)为右上角的坐标。</p>
+<h4 id="2、IoU（交并比）"><a href="#2、IoU（交并比）" class="headerlink" title="2、IoU（交并比）"></a>2、IoU（交并比）</h4><p>IoU（Intersection over Union）表示预测框（candidate bound）与真实框（ground truth bound）之间的重叠程度，也就是它们的交集与并集的面积比，计算公式为：IOU=(A∩B)/(A∪B)。IOU越大，说明两个边框重合度越高。最理想情况是完全重叠，即比值为1。</p>
+<p><img src="/upload_images/98230130.jpg" alt></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">intersection_over_union</span><span class="params">(boxA, boxB)</span>:</span></span><br><span class="line">	<span class="comment"># 计算相交区域顶点</span></span><br><span class="line">	xA = max(boxA[<span class="number">0</span>], boxB[<span class="number">0</span>])</span><br><span class="line">	yA = max(boxA[<span class="number">1</span>], boxB[<span class="number">1</span>])</span><br><span class="line">	xB = min(boxA[<span class="number">2</span>], boxB[<span class="number">2</span>])</span><br><span class="line">	yB = min(boxA[<span class="number">3</span>], boxB[<span class="number">3</span>])</span><br><span class="line"></span><br><span class="line">	<span class="comment"># 计算相交区域面积</span></span><br><span class="line">	interArea = (xB - xA + <span class="number">1</span>)*(yB - yA + <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment"># 计算A、B两个区域各自面积</span></span><br><span class="line">	boxAArea = (boxA[<span class="number">2</span>] - boxA[<span class="number">0</span>] + <span class="number">1</span>)*(boxA[<span class="number">3</span>] - boxA[<span class="number">1</span>] + <span class="number">1</span>)</span><br><span class="line">	boxBArea = (boxB[<span class="number">2</span>] - boxB[<span class="number">0</span>] + <span class="number">1</span>)*(boxB[<span class="number">3</span>] - boxB[<span class="number">1</span>] + <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment"># 计算IOU</span></span><br><span class="line">	IoU = interArea/(boxAArea + boxBArea - interArea)</span><br><span class="line">	<span class="keyword">return</span> IoU</span><br></pre></td></tr></table></figure>
+
+<h4 id="3、NMS（非极大值抑制）"><a href="#3、NMS（非极大值抑制）" class="headerlink" title="3、NMS（非极大值抑制）"></a>3、NMS（非极大值抑制）</h4><p>目标检测的过程中在同一目标的位置上会产生大量的候选框，这些候选框相互之间可能会有重叠，此时我们需要利用非极大值抑制找到最佳的目标边界框，消除冗余的边界框。</p>
+<p><img src="/upload_images/20190401130621335.png" alt></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">nms</span><span class="params">(dets, thresh)</span>:</span></span><br><span class="line">	x1 = dets[:, <span class="number">0</span>]				  <span class="comment"># pred bbox top_x</span></span><br><span class="line">	y1 = dets[:, <span class="number">1</span>]				  <span class="comment"># pred bbox top_y</span></span><br><span class="line">	x2 = dets[:, <span class="number">2</span>]				  <span class="comment"># pred bbox bottom_x</span></span><br><span class="line">	y2 = dets[:, <span class="number">3</span>]				  <span class="comment"># pred bbox bottom_y</span></span><br><span class="line">	scores = dets[:, <span class="number">4</span>]			  <span class="comment"># pred bbox cls score</span></span><br><span class="line"> </span><br><span class="line">	areas = (x2 - x1 + <span class="number">1</span>) * (y2 - y1 + <span class="number">1</span>)   <span class="comment"># pred bbox areas</span></span><br><span class="line">	order = scores.argsort()[::<span class="number">-1</span>]		  <span class="comment"># 对pred bbox按置信度做降序排序</span></span><br><span class="line"> </span><br><span class="line">	keep = []</span><br><span class="line">	<span class="keyword">while</span> order.size &gt; <span class="number">0</span>:</span><br><span class="line">		i = order[<span class="number">0</span>]	  <span class="comment"># top-1 score pred bbox</span></span><br><span class="line">		keep.append(i)</span><br><span class="line">		xx1 = np.maximum(x1[i], x1[order[<span class="number">1</span>:]])</span><br><span class="line">		yy1 = np.maximum(y1[i], y1[order[<span class="number">1</span>:]])</span><br><span class="line">		xx2 = np.minimum(x2[i], x2[order[<span class="number">1</span>:]])</span><br><span class="line">		yy2 = np.minimum(y2[i], y2[order[<span class="number">1</span>:]])</span><br><span class="line"> </span><br><span class="line">		w = np.maximum(<span class="number">0.0</span>, xx2 - xx1 + <span class="number">1</span>)</span><br><span class="line">		h = np.maximum(<span class="number">0.0</span>, yy2 - yy1 + <span class="number">1</span>)</span><br><span class="line">		inter = w * h</span><br><span class="line">		IoU = inter / (areas[i] + areas[order[<span class="number">1</span>:]] - inter)  <span class="comment"># IoU计算</span></span><br><span class="line"> </span><br><span class="line">		inds = np.where(IoU &lt;= thresh)[<span class="number">0</span>]	 <span class="comment"># 保留非冗余bbox</span></span><br><span class="line">		order = order[inds + <span class="number">1</span>]</span><br><span class="line"> </span><br><span class="line">	<span class="keyword">return</span> keep	<span class="comment"># 最终NMS结果返回</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">soft_nms</span><span class="params">( dets, method, thresh=<span class="number">0.001</span>, Nt=<span class="number">0.1</span>, sigma=<span class="number">0.5</span> )</span>:</span></span><br><span class="line">	x1 = dets[:, <span class="number">0</span>]</span><br><span class="line">	y1 = dets[:, <span class="number">1</span>]</span><br><span class="line">	x2 = dets[:, <span class="number">2</span>]</span><br><span class="line">	y2 = dets[:, <span class="number">3</span>]</span><br><span class="line">	scores = dets[:, <span class="number">4</span>]</span><br><span class="line"></span><br><span class="line">	areas = ( y2 - y1 + <span class="number">1.</span> ) * ( x2 - x1 + <span class="number">1.</span> ) </span><br><span class="line">	orders = scores.argsort()[::<span class="number">-1</span>]</span><br><span class="line">	keep = []</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">while</span> orders.size &gt; <span class="number">0</span>:</span><br><span class="line">		i = orders[<span class="number">0</span>]</span><br><span class="line">		keep.append(i)</span><br><span class="line">		<span class="keyword">for</span> j <span class="keyword">in</span> orders[<span class="number">1</span>:]:</span><br><span class="line">			xx1 = np.maximum(x1[i], x1[j])</span><br><span class="line">			yy1 = np.maximum(y1[i], y1[j])</span><br><span class="line">			xx2 = np.minimum(x2[i], x2[j])</span><br><span class="line">			yy2 = np.minimum(y2[i], y2[j])</span><br><span class="line"></span><br><span class="line">			w = np.maximum( xx2 - xx1 + <span class="number">1.</span>, <span class="number">0.</span> )</span><br><span class="line">			h = np.maximum( yy2 - yy1 + <span class="number">1.</span>, <span class="number">0.</span> )</span><br><span class="line">			inter = w * h</span><br><span class="line">			IoU = inter / (areas[i] + areas[j] - inter)</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> method == <span class="number">1</span>:  <span class="comment"># linear</span></span><br><span class="line">				<span class="keyword">if</span> IoU &gt; Nt:</span><br><span class="line">					weight = <span class="number">1</span> - IoU</span><br><span class="line">				<span class="keyword">else</span>:</span><br><span class="line">					weight = <span class="number">1</span> </span><br><span class="line">			<span class="keyword">elif</span> method == <span class="number">2</span>:  <span class="comment"># gaussian</span></span><br><span class="line">				weight = np.exp(-(IoU * IoU)/sigma)</span><br><span class="line">			<span class="keyword">else</span>: </span><br><span class="line">				<span class="keyword">if</span> IoU &gt; Nt:</span><br><span class="line">					weight = <span class="number">0</span></span><br><span class="line">				<span class="keyword">else</span>:</span><br><span class="line">					weight = <span class="number">1</span></span><br><span class="line">			scores[j] = weight * scores[j]</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> scores[j] &lt; thresh:  </span><br><span class="line">				orders = np.delete(orders, np.where(orders == j))</span><br><span class="line"></span><br><span class="line">		orders = np.delete(orders, <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> keep</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line"></span><br><span class="line">	dets = np.array([[<span class="number">100</span>,<span class="number">120</span>,<span class="number">170</span>,<span class="number">200</span>,<span class="number">0.98</span>],</span><br><span class="line">					 [<span class="number">20</span>,<span class="number">40</span>,<span class="number">80</span>,<span class="number">90</span>,<span class="number">0.94</span>],</span><br><span class="line">					 [<span class="number">20</span>,<span class="number">38</span>,<span class="number">82</span>,<span class="number">88</span>,<span class="number">0.99</span>],</span><br><span class="line">					 [<span class="number">200</span>,<span class="number">380</span>,<span class="number">282</span>,<span class="number">488</span>,<span class="number">0.9</span>],</span><br><span class="line">					 [<span class="number">19</span>,<span class="number">38</span>,<span class="number">75</span>,<span class="number">91</span>, <span class="number">0.98</span>]])</span><br><span class="line"></span><br><span class="line">	print(nms(dets, <span class="number">0.5</span>))</span><br><span class="line">	print(soft_nms(dets, <span class="number">3</span>))</span><br></pre></td></tr></table></figure>
+
+<h2 id="二、目标检测算法综述"><a href="#二、目标检测算法综述" class="headerlink" title="二、目标检测算法综述"></a>二、目标检测算法综述</h2><h4 id="1、传统的目标检测框架"><a href="#1、传统的目标检测框架" class="headerlink" title="1、传统的目标检测框架"></a>1、传统的目标检测框架</h4><p>滑窗法（Sliding Window）是一种经典的目标检测方法。<br>主要包括四个步骤：<br>（1）利用不同尺寸的滑动窗口框住图中的某一部分。<br>（2）提取窗口内的视觉特征，比如人脸检测常用的Harr特征，行人检测和普通目标检测常用的HOG特征等。<br>（3）利用分类器进行识别，比如常用的SVM模型。<br>（4）对检测到目标的窗口采用非极大值抑制（Non-Maximum Suppression, NMS）的方法进行筛选。</p>
+<p><img src="/upload_images/9210113-b43848fa71b9a4d8.png" alt></p>
+<p>滑窗法简单易于理解，但是按不同窗口大小进行图像全局搜索导致效率低下，而且设计窗口大小时候还需要考虑物体的长宽比。所以，不推荐使用滑窗法。</p>
+<h4 id="2、深度学习目标检测框架"><a href="#2、深度学习目标检测框架" class="headerlink" title="2、深度学习目标检测框架"></a>2、深度学习目标检测框架</h4><p>基于深度学习算法的一系列目标检测算法大致可以分为两大流派：<br>两步走（two-stage）方案：先产生候选区域然后再进行CNN分类（RCNN系列）。<br>一步走（one-stage）方案：不需要产生候选区域，将目标检测作为回归任务来处理（YOLO系列）</p>
+<h2 id="三、目标检测常用的数据集"><a href="#三、目标检测常用的数据集" class="headerlink" title="三、目标检测常用的数据集"></a>三、目标检测常用的数据集</h2><p>目标检测常用的数据集包括PASCAL VOC、ImageNet、MS COCO等，这些数据集用于研究者测试算法性能或者用于竞赛。</p>
+<h4 id="1、PASCAL-VOC"><a href="#1、PASCAL-VOC" class="headerlink" title="1、PASCAL VOC"></a>1、PASCAL VOC</h4><p>PASCAL VOC是目标检测、分类、分割等领域一个有名的数据集。从2005到2012年，共举办了8个不同的挑战赛。PASCAL VOC包含约10,000张带有边界框的图片用于训练和验证。但是，PASCAL VOC数据集仅包含20个类别，因此其被看成目标检测问题的一个基准数据集。<br><a href="http://host.robots.ox.ac.uk/pascal/VOC/" target="_blank" rel="noopener">官方网址</a></p>
+<h4 id="2、ImageNet"><a href="#2、ImageNet" class="headerlink" title="2、ImageNet"></a>2、ImageNet</h4><p>ImageNet在2013年放出了包含边界框的目标检测数据集。训练数据集包含500,000张图片，属于200类物体。由于数据集太大，训练所需计算量很大，因而很少使用。同时，由于类别数也比较多，目标检测的难度也相当大。<br><a href="http://image-net.org/" target="_blank" rel="noopener">官方网址</a></p>
+<h4 id="3、MS-COCO"><a href="#3、MS-COCO" class="headerlink" title="3、MS COCO"></a>3、MS COCO</h4><p>COCO（Common Objects in Context）是一个新的图像识别、分割和图像语义数据集，由微软赞助，图像中不仅有标注类别、位置信息，还有对图像的语义文本描述。<br><a href="http://mscoco.org/" target="_blank" rel="noopener">官方网址</a></p>
+<h2 id="四、目标检测的评估指标"><a href="#四、目标检测的评估指标" class="headerlink" title="四、目标检测的评估指标"></a>四、目标检测的评估指标</h2><h4 id="1、mAP（检测精度指标）"><a href="#1、mAP（检测精度指标）" class="headerlink" title="1、mAP（检测精度指标）"></a>1、mAP（检测精度指标）</h4><p>首先需要介绍P-R曲线，它是以精度（precision）和召回率（recall）作为纵、横轴坐标，通过选取不同阈值时对应的精度和召回率画出的二维曲线。一般来说，精度越高，召回越低，反之亦然。</p>
+<p><img src="/upload_images/20180726085031749.png" alt></p>
+<p>P-R曲线围起来的面积被叫作AP值（Average Precision，平均精度），通常来说一个越好的分类器，AP值越高。<br>在目标检测中，每一类物体都可以根据精度和召回率绘制出该类的P-R曲线，得到检测该类的AP值，把检测各类物体的AP值取平均可以得到一个新的指标mAP（Mean Average Precision）。我们一般把mAP作为目标检测中衡量检测精度的指标。</p>
+<h4 id="2、FPS（检测速度指标）"><a href="#2、FPS（检测速度指标）" class="headerlink" title="2、FPS（检测速度指标）"></a>2、FPS（检测速度指标）</h4><p>只有速度快，才能实现实时检测，这对一些应用场景极其重要。评估速度的常用指标是每秒帧率（Frame Per Second，FPS），即每秒内可以处理的图片数量。当然。另外也可以使用处理一张图片所需时间来评估检测速度，时间越短，速度越快。</p>
+
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/12/17.2实现一个自定义数据集上的图像识别项目/" rel="next" title="实现一个自定义数据集上的图像识别项目">
+                  <i class="fa fa-chevron-left"></i> 实现一个自定义数据集上的图像识别项目
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/12/19实现一个简单的蔬菜检测项目/" rel="prev" title="实现一个简单的蔬菜检测项目">
+                  实现一个简单的蔬菜检测项目 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">150</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>
