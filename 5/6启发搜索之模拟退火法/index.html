@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="牛顿法也是机器学习中用的比较多的一种优化算法。">
+<meta name="keywords" content="数据科学 比特猫 Byte猫">
+<meta property="og:type" content="article">
+<meta property="og:title" content="启发搜索之模拟退火法">
+<meta property="og:url" content="https://smallchao.github.io/5/6启发搜索之模拟退火法/index.html">
+<meta property="og:site_name" content="Byte猫">
+<meta property="og:description" content="牛顿法也是机器学习中用的比较多的一种优化算法。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-ed20ef5a3253fc63.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-5d5c833c7a825507.jpg">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-03e413a159587873.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-d5917ca45894d943.png">
+<meta property="og:updated_time" content="2019-12-30T10:59:22.731Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="启发搜索之模拟退火法">
+<meta name="twitter:description" content="牛顿法也是机器学习中用的比较多的一种优化算法。">
+<meta name="twitter:image" content="https://smallchao.github.io/upload_images/9210113-ed20ef5a3253fc63.png">
+  <link rel="canonical" href="https://smallchao.github.io/5/6启发搜索之模拟退火法/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>启发搜索之模拟退火法 | Byte猫</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Byte猫</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">唤醒数据的价值</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据科学知识">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据科学知识</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-机器学习原理">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>机器学习原理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-神经网络与深度学习">
+      
+    
+
+    <a href="/categories/a" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>神经网络与深度学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】计算机视觉">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】计算机视觉</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】自然语言处理">
+      
+    
+
+    <a href="/categories/c" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】自然语言处理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-图算法">
+      
+    
+
+    <a href="/categories/y" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>图算法</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-个性化推荐">
+      
+    
+
+    <a href="/categories/z" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>个性化推荐</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/5/6启发搜索之模拟退火法/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Byte猫">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">启发搜索之模拟退火法
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-12-30 18:59:22" itemprop="dateModified" datetime="2019-12-30T18:59:22+08:00">2019-12-30</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">牛顿法也是机器学习中用的比较多的一种优化算法。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <p>在热力学上，退火（annealing）现象指物体逐渐降温的物理现象，温度越低，物体的能量状态会低；够低后，液体开始冷凝与结晶，在结晶状态时，系统的能量状态最低。大自然在缓慢降温（退火）时，可”找到”最低能量状态：结晶。但是如果过程过急过快，快速降温（亦称”淬炼”，quenching）时，会导致不是最低能态的非晶形。</p><a id="more"></a>
+<p><img src="/upload_images/9210113-ed20ef5a3253fc63.png" alt></p>
+<p>加温时，固体内部粒子随温升变为无序状，内能增大，而徐徐冷却时粒子渐趋有序，在每个温度都达到平衡态，最后在常温时达到基态，内能减为最小。此时，粒子最为稳定。模拟退火算法（Simulate Anneal，SA）便是基于这样的原理设计而成，主要用于组合优化问题的求解。</p>
+<h2 id="模拟退火算法过程"><a href="#模拟退火算法过程" class="headerlink" title="模拟退火算法过程"></a>模拟退火算法过程</h2><p><img src="/upload_images/9210113-5d5c833c7a825507.jpg" alt></p>
+<p>模拟退火算法从某一较高的温度出发，这个温度对应的是A点，伴随着温度参数的不断下降，算法中的解趋于稳定，但是，可能这样的稳定解是一个局部最优解，此时，模拟退火算法中会以一定的概率跳出这样的局部最优解，以寻找目标函数的全局最优解。如上图中所示，若此时寻找到了B点处的解，模拟退火算法会以一定的概率跳出这个解，如跳到了C点重新寻找，这样在一定程度上增加了寻找到全局最优解D点的可能性。<br>该算法可以分解为如下流程。<br><strong>STEP1：</strong> 初始化。初始温度 T (充分大)，初始解状态 S (是算法迭代的起点)， 约定迭代次数 L。<br><strong>STEP2：</strong> 对 k=1，……，L 做第 3 至第 6 步：<br><strong>STEP3：</strong> 产生新解 S’<br><strong>STEP4：</strong> 计算增量 ΔE =E(S′)-E(S) ，其中 E(S) 为评价函数<br><strong>STEP5：</strong> 若 Δt′&lt;0 则接受 S′ 作为新的当前解，否则以概率 exp(-ΔE/kT) 接受 S′ 作为新的当前解.</p>
+<p><img src="/upload_images/9210113-03e413a159587873.png" alt="Metropolis 准则，粒子在温度T时趋于平衡的概率为 exp(-ΔE/kT)，其中E为温度T时的内能，ΔE为其改变量，k为Boltzmann常数。"></p>
+<p><strong>STEP6：</strong> 如果满足终止条件则输出当前解作为最优解，结束程序。 终止条件通常取为连续若干个新解都没有被接受时终止算法。<br><strong>STEP7：</strong> T 逐渐减少，且 T&gt;0 ，然后转第 2 步。</p>
+<p><img src="/upload_images/9210113-d5917ca45894d943.png" alt></p>
+<h2 id="模拟退火法的代码实现"><a href="#模拟退火法的代码实现" class="headerlink" title="模拟退火法的代码实现"></a>模拟退火法的代码实现</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># coding=utf-8</span></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">import</span> math</span><br><span class="line"></span><br><span class="line"><span class="comment">#########################################################</span></span><br><span class="line"><span class="comment"># 定义目标函数</span></span><br><span class="line"><span class="comment">#########################################################</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">aimFunction</span><span class="params">(x)</span>:</span></span><br><span class="line">    <span class="comment"># 目标函数</span></span><br><span class="line">    y = x**<span class="number">3</span><span class="number">-80</span>*x**<span class="number">2</span><span class="number">-4</span>*x+<span class="number">6</span></span><br><span class="line">    <span class="keyword">return</span> y</span><br><span class="line"></span><br><span class="line">x = [i/<span class="number">10</span> <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">1000</span>)]</span><br><span class="line">y = []</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">1000</span>):</span><br><span class="line">    y.append(aimFunction(x[i]))</span><br><span class="line"></span><br><span class="line">plt.plot(x, y)</span><br><span class="line">plt.show()</span><br><span class="line"></span><br><span class="line"><span class="comment">#########################################################</span></span><br><span class="line"><span class="comment"># 模拟退火算法</span></span><br><span class="line"><span class="comment">#########################################################</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">SA</span><span class="params">(T_init, T_min, parameter_space)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    模拟退火算法</span></span><br><span class="line"><span class="string">    INPUT -&gt; 初始温度, 最低温度(即退出循环条件), 参数空间</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    <span class="keyword">import</span> random</span><br><span class="line">    T = T_init  <span class="comment"># 初始温度</span></span><br><span class="line">    x = random.choice(parameter_space) <span class="comment"># 随机选取初解</span></span><br><span class="line"></span><br><span class="line">    alpha = <span class="number">0.95</span> <span class="comment"># 降温系数</span></span><br><span class="line">    iterL = <span class="number">100</span> <span class="comment"># 搜索次数</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 外层循环, 是否满足终止条件</span></span><br><span class="line">    <span class="keyword">while</span> T &gt;= T_min:</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 内层循环, 是否达到迭代次数</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(iterL):   <span class="comment"># 一般来说，同一温度下的"充分"搜索是相当必要的</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># 当前解的内能</span></span><br><span class="line">            E = aimFunction(x)</span><br><span class="line">            <span class="comment"># 当前解变化量</span></span><br><span class="line">            delta_x = random.random() - <span class="number">0.5</span></span><br><span class="line">            <span class="comment"># 新解仍要求在参数空间之内</span></span><br><span class="line">            <span class="keyword">if</span> int(x + delta_x) <span class="keyword">in</span> parameter_space:</span><br><span class="line">                xNew = x + delta_x</span><br><span class="line">                <span class="comment"># 计算新解的内能</span></span><br><span class="line">                ENew = aimFunction(xNew)</span><br><span class="line">                <span class="comment"># 内能变化量</span></span><br><span class="line">                delta_E = ENew - E</span><br><span class="line">                <span class="keyword">if</span> delta_E &lt; <span class="number">0</span>:  <span class="comment"># 无条件更新</span></span><br><span class="line">                    x = xNew</span><br><span class="line">                <span class="keyword">else</span>:  <span class="comment"># 按照概率更新</span></span><br><span class="line">                    p = math.exp(-delta_E/T)</span><br><span class="line">                    <span class="keyword">if</span> random.random() &lt; p:</span><br><span class="line">                        x = xNew</span><br><span class="line">       </span><br><span class="line">        <span class="comment"># 降到新的温度</span></span><br><span class="line">        T = T*alpha</span><br><span class="line">        print(x, T)</span><br><span class="line">    <span class="keyword">return</span> x</span><br><span class="line"></span><br><span class="line">x = SA(<span class="number">1000</span>, <span class="number">0.001</span>, range(<span class="number">100</span>))</span><br><span class="line">print(x, aimFunction(x))</span><br></pre></td></tr></table></figure>
+
+<h2 id="用模拟退火算法解决实际问题"><a href="#用模拟退火算法解决实际问题" class="headerlink" title="用模拟退火算法解决实际问题"></a>用模拟退火算法解决实际问题</h2><p>旅行商问题(TravelingSalesmanProblem，TSP)是一个经典的组合优化问题。经典的TSP可以描述为：一个商品推销员要去若干个城市推销商品，该推销员从一个城市出发，需要经过所有城市后，回到出发地。应如何选择行进路线，以使总的行程最短。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># coding:utf-8</span></span><br><span class="line"><span class="keyword">import</span> math</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"></span><br><span class="line"><span class="comment"># 初始温度</span></span><br><span class="line">T = <span class="number">50000</span></span><br><span class="line"><span class="comment"># 最低温度</span></span><br><span class="line">T_end = <span class="number">1e-8</span></span><br><span class="line"><span class="comment"># 在每个温度下的迭代次数</span></span><br><span class="line">L = <span class="number">100</span></span><br><span class="line"><span class="comment"># 退火系数</span></span><br><span class="line">delta = <span class="number">0.98</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 31个城市的坐标</span></span><br><span class="line">citys = [[<span class="number">1304</span>,<span class="number">2312</span>],[<span class="number">3639</span>,<span class="number">1315</span>],[<span class="number">4177</span>,<span class="number">2244</span>],[<span class="number">3712</span>,<span class="number">1399</span>],[<span class="number">3488</span>,<span class="number">1535</span>],[<span class="number">3326</span>,<span class="number">1556</span>],[<span class="number">3238</span>,<span class="number">1229</span>],[<span class="number">4196</span>,<span class="number">1004</span>],[<span class="number">4312</span>,<span class="number">790</span>],[<span class="number">4386</span>,<span class="number">570</span>],[<span class="number">3007</span>,<span class="number">1970</span>],[<span class="number">2562</span>,<span class="number">1756</span>],[<span class="number">2788</span>,<span class="number">1491</span>],[<span class="number">2381</span>,<span class="number">1676</span>],[<span class="number">1332</span>,<span class="number">695</span>],[<span class="number">3715</span>,<span class="number">1678</span>],[<span class="number">3918</span>,<span class="number">2179</span>],[<span class="number">4061</span>,<span class="number">2370</span>],[<span class="number">3780</span>,<span class="number">2212</span>],[<span class="number">3676</span>,<span class="number">2578</span>],[<span class="number">4029</span>,<span class="number">2838</span>],[<span class="number">4263</span>,<span class="number">2931</span>],[<span class="number">3429</span>,<span class="number">1908</span>],[<span class="number">3507</span>,<span class="number">2367</span>],[<span class="number">3394</span>,<span class="number">2643</span>],[<span class="number">3439</span>,<span class="number">3201</span>],[<span class="number">2935</span>,<span class="number">3240</span>],[<span class="number">3140</span>,<span class="number">3550</span>],[<span class="number">2545</span>,<span class="number">2357</span>],[<span class="number">2778</span>,<span class="number">2826</span>],[<span class="number">2370</span>,<span class="number">2975</span>]]</span><br><span class="line"><span class="comment"># 存储两个城市之间的距离</span></span><br><span class="line">d = [[<span class="number">0</span> <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">31</span>)] <span class="keyword">for</span> j <span class="keyword">in</span> range(<span class="number">31</span>)]</span><br><span class="line"><span class="comment"># 存储一条路径</span></span><br><span class="line">ans = []</span><br><span class="line"></span><br><span class="line"><span class="comment"># 计算降温次数</span></span><br><span class="line">cnt=<span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 计算两个城市之间的距离</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_city_distance</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(len(citys)):</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(i, len(citys)):</span><br><span class="line">            d[i][j] = d[j][i] = math.sqrt((citys[i][<span class="number">0</span>]-citys[j][<span class="number">0</span>])**<span class="number">2</span> + (citys[i][<span class="number">1</span>]-citys[j][<span class="number">1</span>])**<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用随机交换路径中两个城市的位置来产生一条新路径</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_new</span><span class="params">(a)</span>:</span></span><br><span class="line">    i = random.randint(<span class="number">0</span>, len(a)<span class="number">-1</span>)</span><br><span class="line">    j = random.randint(<span class="number">0</span>, len(a)<span class="number">-1</span>)</span><br><span class="line">    a[i], a[j] = a[j], a[i]</span><br><span class="line">    <span class="keyword">return</span> a</span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取路径的长度</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_route_distance</span><span class="params">(a)</span>:</span></span><br><span class="line">    dist = <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(len(a)<span class="number">-1</span>):</span><br><span class="line">        dist+=d[a[i]][a[i+<span class="number">1</span>]]</span><br><span class="line">    <span class="keyword">return</span> dist</span><br><span class="line">    </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">saa</span><span class="params">()</span>:</span></span><br><span class="line">    get_city_distance()</span><br><span class="line">    cnt = <span class="number">0</span></span><br><span class="line">    ans = range(<span class="number">0</span>, len(citys))</span><br><span class="line">    t = T</span><br><span class="line">    result = <span class="number">0</span></span><br><span class="line">    <span class="keyword">while</span> t &gt;= T_end:</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">0</span>, L):</span><br><span class="line">            ans_new = create_new(list(ans))</span><br><span class="line">            d1, d2 = get_route_distance(ans), get_route_distance(ans_new)</span><br><span class="line">            de = d2 - d1</span><br><span class="line">            result = d1</span><br><span class="line">            <span class="keyword">if</span> de&lt;<span class="number">0</span>:</span><br><span class="line">                ans = ans_new</span><br><span class="line">                result = d2</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">if</span>(math.e**(-de/T) &gt; random.random()):</span><br><span class="line">                    ans = ans_new</span><br><span class="line">                    result = d2</span><br><span class="line">        t = t * delta</span><br><span class="line">        cnt+=<span class="number">1</span></span><br><span class="line">    print(<span class="string">"路径如下："</span>)</span><br><span class="line">    print(ans)</span><br><span class="line">    print(<span class="string">"路径长度："</span>)</span><br><span class="line">    print(result)</span><br><span class="line">    print(<span class="string">"降温次数："</span>)</span><br><span class="line">    print(cnt)</span><br><span class="line">    </span><br><span class="line">start = time.time()</span><br><span class="line">saa()</span><br><span class="line">end = time.time()</span><br><span class="line">print(<span class="string">"运行耗时："</span> + str(end-start) + <span class="string">"s"</span>)</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/5/5局部搜索之牛顿法/" rel="next" title="局部搜索之牛顿法">
+                  <i class="fa fa-chevron-left"></i> 局部搜索之牛顿法
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/5/7启发搜索之模拟遗传法/" rel="prev" title="启发搜索之遗传算法">
+                  启发搜索之遗传算法 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">148</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+    
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>

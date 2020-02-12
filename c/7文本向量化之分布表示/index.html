@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="文本表示的分布表示研究了上下文的概率分布，认为上下文相似的词，其语义也相似，由此将语义引入到文本表示中，词与词之间有了距离的概念。">
+<meta name="keywords" content="数据科学 比特猫 Byte猫">
+<meta property="og:type" content="article">
+<meta property="og:title" content="文本表示之分布表示">
+<meta property="og:url" content="https://smallchao.github.io/c/7文本向量化之分布表示/index.html">
+<meta property="og:site_name" content="Byte猫">
+<meta property="og:description" content="文本表示的分布表示研究了上下文的概率分布，认为上下文相似的词，其语义也相似，由此将语义引入到文本表示中，词与词之间有了距离的概念。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-122cb79338df7e4e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-fb141204325c3d49.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2020-01-17T03:24:54.990Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="文本表示之分布表示">
+<meta name="twitter:description" content="文本表示的分布表示研究了上下文的概率分布，认为上下文相似的词，其语义也相似，由此将语义引入到文本表示中，词与词之间有了距离的概念。">
+<meta name="twitter:image" content="https://smallchao.github.io/upload_images/9210113-122cb79338df7e4e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+  <link rel="canonical" href="https://smallchao.github.io/c/7文本向量化之分布表示/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>文本表示之分布表示 | Byte猫</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Byte猫</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">唤醒数据的价值</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据科学知识">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据科学知识</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-机器学习原理">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>机器学习原理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-神经网络与深度学习">
+      
+    
+
+    <a href="/categories/a" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>神经网络与深度学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】计算机视觉">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】计算机视觉</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】自然语言处理">
+      
+    
+
+    <a href="/categories/c" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】自然语言处理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-图算法">
+      
+    
+
+    <a href="/categories/y" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>图算法</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-个性化推荐">
+      
+    
+
+    <a href="/categories/z" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>个性化推荐</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/c/7文本向量化之分布表示/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Byte猫">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">文本表示之分布表示
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-01-17 11:24:54" itemprop="dateModified" datetime="2020-01-17T11:24:54+08:00">2020-01-17</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">文本表示的分布表示研究了上下文的概率分布，认为上下文相似的词，其语义也相似，由此将语义引入到文本表示中，词与词之间有了距离的概念。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <p>文本表示的分布表示研究了上下文的概率分布，认为上下文相似的词，其语义也相似，由此将语义引入到文本表示中，词与词之间有了距离的概念。<br>用一个词附近的其它词来表示该词，这是现代统计自然语言处理中最有创见的想法之一。当初科学家发明这种方法是基于人的语言表达，认为一个词是由这个词的周边词汇一起来构成精确的语义信息。就好比，物以类聚人以群分，如果你想了解一个人，可以通过他周围的人进行了解，因为周围人都有一些共同点才能聚集起来。</p><a id="more"></a>
+<h2 id="一、共现矩阵"><a href="#一、共现矩阵" class="headerlink" title="一、共现矩阵"></a>一、共现矩阵</h2><p>共现矩阵顾名思义就是共同出现的意思，共现是指不同的词同时出现的文档数。<br>2005年 Rohde等在《An Improved Model of Semantic Similarity Based on Lexical Co-Occurrence》中介绍了使用共现矩阵（Co-Occurrence matrix）结合SVD降维处理的方法，实现了使用上下文表示单词。<br>局域窗中的word-word共现矩阵可以挖掘语法和语义信息，例如：</p>
+<blockquote>
+<p>I like deep learning.<br>I like NLP.<br>I enjoy flying.</p>
+</blockquote>
+<p>以上三句话，设置滑窗（对称窗口）为2，可以得到一个词典：{“I like”,”like deep”,”deep learning”,”like NLP”,”I enjoy”,”enjoy flying”,”I like”}。<br>我们可以得到一个共现矩阵（对称矩阵）：</p>
+<p><img src="/upload_images/9210113-122cb79338df7e4e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>中间的每个格子表示的是行和列组成的词组在词典中共同出现的次数，也就体现了共现的特性。比如例如：“I like”出现在第1，2句话中，一共出现2次，所以是2。 对称的窗口指的是，“like I”也是2次。<br>共线矩阵存在维度灾难和数据稀疏的问题。一种想法是高维信息用低维的向量表征，因此需要通过降维的方法来解决，一种常用的方法是奇异值分解（SVD）。<br>对上例中的共现矩阵进行分解后，各词在二维坐标中的位置:  </p>
+<p><img src="/upload_images/9210113-fb141204325c3d49.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>但是即使是结合降维技术的Co-Occurrence matrix 方法也存在时间复杂度高（尤其对百万级的单词或者文档表现就很糟糕了）、对新词或新文本难以做到及时更新等问题。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#-*- coding:utf-8 -*-</span></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> os,re,jieba</span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> Counter</span><br><span class="line">FILE_DIR = os.path.dirname(os.path.abspath(__file__))</span><br><span class="line"><span class="keyword">import</span> warnings; warnings.filterwarnings(action=<span class="string">'ignore'</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  分词</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">tokenization</span><span class="params">(doc, userlist=False, stopwords=False)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    分词功能</span></span><br><span class="line"><span class="string">    INPUT  -&gt; 输入文本, 是否使用自定义词典, 是否过滤停用词</span></span><br><span class="line"><span class="string">    OUTPUT -&gt; 分词列表</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="keyword">if</span> userlist:</span><br><span class="line">            jieba.load_userdict(FILE_DIR+<span class="string">"/userdict.txt"</span>)</span><br><span class="line">        cleaner = re.compile(<span class="string">r'&lt;[^&gt;]+&gt;'</span>,re.S)</span><br><span class="line">        doc_clean = cleaner.sub(<span class="string">''</span>, doc)</span><br><span class="line">        wordlist = jieba.lcut(doc_clean, cut_all=<span class="literal">False</span>)</span><br><span class="line">        <span class="comment"># 去数字</span></span><br><span class="line">        wordlist = [v <span class="keyword">for</span> v <span class="keyword">in</span> wordlist <span class="keyword">if</span> <span class="keyword">not</span> str(v).isdigit()]</span><br><span class="line">        <span class="comment"># 去左右空格</span></span><br><span class="line">        wordlist = list(filter(<span class="keyword">lambda</span> x:x.strip(), wordlist))</span><br><span class="line">        <span class="comment"># 去掉长度等于1的词</span></span><br><span class="line">        <span class="comment"># wordlist = list(filter(lambda x:len(x)&gt;1, wordlist))</span></span><br><span class="line">        <span class="comment"># 过滤标点符号(一般的中文文本分析都不需要标点)</span></span><br><span class="line">        wordlist = list(filter(<span class="keyword">lambda</span> x:x <span class="keyword">not</span> <span class="keyword">in</span> [<span class="string">'，'</span>,<span class="string">','</span>,<span class="string">'。'</span>,<span class="string">'?'</span>,<span class="string">'？'</span>,<span class="string">'、'</span>,<span class="string">':'</span>,<span class="string">'：'</span>,<span class="string">'!'</span>,<span class="string">'！'</span>,<span class="string">'('</span>,<span class="string">')'</span>,<span class="string">'（'</span>,<span class="string">'）'</span>,<span class="string">'《'</span>,<span class="string">'》'</span>,<span class="string">'-'</span>,<span class="string">'`'</span>,<span class="string">'~'</span>,<span class="string">'#'</span>,<span class="string">'@'</span>,<span class="string">'&amp;'</span>,<span class="string">'*'</span>,<span class="string">'$'</span>,<span class="string">'%'</span>,<span class="string">'^'</span>,<span class="string">'+'</span>,<span class="string">'_'</span>,<span class="string">'/'</span>,<span class="string">'“'</span>,<span class="string">'”'</span>,<span class="string">'['</span>,<span class="string">']'</span>,<span class="string">'&#123;'</span>,<span class="string">'&#125;'</span>], wordlist)) </span><br><span class="line">        <span class="keyword">if</span> stopwords:</span><br><span class="line">            <span class="comment"># stopwords = pd.read_table(FILE_DIR+"/stopwords.txt").values</span></span><br><span class="line">            stopwords = set(<span class="string">'的 和 会 具有 形成 可以 通过'</span>.split())</span><br><span class="line">            wordlist = list(filter(<span class="keyword">lambda</span> x:x <span class="keyword">not</span> <span class="keyword">in</span> stopwords, wordlist))</span><br><span class="line">        <span class="keyword">return</span> wordlist</span><br><span class="line">    <span class="keyword">except</span> Exception:</span><br><span class="line">        print(doc)</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  文本表示</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Coword_matrix</span><span class="params">(object)</span>:</span> </span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    共词矩阵类</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, docs_wordlist)</span>:</span></span><br><span class="line">        <span class="string">'''</span></span><br><span class="line"><span class="string">        初始化</span></span><br><span class="line"><span class="string">        INPUT --&gt; 切词嵌套列表</span></span><br><span class="line"><span class="string">        '''</span></span><br><span class="line">        self.docs_wordlist = docs_wordlist</span><br><span class="line">        Full_feature_dict = &#123;&#125;  <span class="comment"># 储存特征和权重</span></span><br><span class="line">        <span class="keyword">for</span> wordlist <span class="keyword">in</span> self.docs_wordlist:</span><br><span class="line">            feature_dict = Counter(wordlist)  <span class="comment"># 全部词频统计</span></span><br><span class="line">            <span class="comment"># feature_dict_sort_result = feature_dict.most_common(100)  # 排名前100的热词的词频统计</span></span><br><span class="line">            Full_feature_dict = dict(Counter(dict(feature_dict))+Counter(dict(Full_feature_dict)))</span><br><span class="line">        self.Full_feature_word, self.Full_feature_weight = list(Full_feature_dict.keys()), list(Full_feature_dict.values())</span><br><span class="line">        print(self.Full_feature_word, self.Full_feature_weight)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 构建共词矩阵</span></span><br><span class="line">        self.Coword_matrix = np.zeros((len(self.Full_feature_word), len(self.Full_feature_word)))</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(len(self.Full_feature_word)):  </span><br><span class="line">            <span class="keyword">for</span> j <span class="keyword">in</span> range(len(self.Full_feature_word)):</span><br><span class="line">                <span class="keyword">if</span> i == j:</span><br><span class="line">                    self.Coword_matrix[i][j] = int(self.Full_feature_weight[i])  <span class="comment"># 对角线上元素=它自身出现次数</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(len(self.Full_feature_word)):  </span><br><span class="line">            <span class="keyword">for</span> j <span class="keyword">in</span> range(<span class="number">1</span>, len(self.Full_feature_word) - i):</span><br><span class="line">                word1 = self.Full_feature_word[i]</span><br><span class="line">                word2 = self.Full_feature_word[i + j]</span><br><span class="line">                <span class="comment"># print(word1, word2)</span></span><br><span class="line">                Coword_weight = <span class="number">0</span></span><br><span class="line">                <span class="keyword">for</span> wordlist <span class="keyword">in</span> self.docs_wordlist:</span><br><span class="line">                    <span class="keyword">if</span> ((word1 <span class="keyword">in</span> wordlist) <span class="keyword">and</span> (word2 <span class="keyword">in</span> wordlist)):</span><br><span class="line">                        Coword_weight += <span class="number">1</span></span><br><span class="line">                self.Coword_matrix[i][i + j] = Coword_weight    <span class="comment"># 该矩阵为对角矩阵</span></span><br><span class="line">                self.Coword_matrix[i + j][i] = Coword_weight</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_Coword_matrix</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">'''</span></span><br><span class="line"><span class="string">        返回共词矩阵</span></span><br><span class="line"><span class="string">        '''</span></span><br><span class="line">        <span class="keyword">return</span> self.Coword_matrix</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_Full_feature_word</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">'''</span></span><br><span class="line"><span class="string">        返回特征词列表</span></span><br><span class="line"><span class="string">        '''</span></span><br><span class="line">        <span class="keyword">return</span> self.Full_feature_word</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_word_row</span><span class="params">(self, word)</span>:</span></span><br><span class="line">        <span class="string">'''</span></span><br><span class="line"><span class="string">        返回某词对应的共词矩阵的那一行</span></span><br><span class="line"><span class="string">        '''</span></span><br><span class="line">        <span class="keyword">if</span> word <span class="keyword">not</span> <span class="keyword">in</span> self.Full_feature_word:</span><br><span class="line">            print(word + <span class="string">"   该词不在特征词中！"</span>)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">for</span> row <span class="keyword">in</span> range(len(self.Full_feature_word)):</span><br><span class="line">                <span class="keyword">if</span> word == self.Full_feature_word[row]:</span><br><span class="line">                    <span class="keyword">return</span> self.Coword_matrix[row]</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  主程序入口</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="keyword">if</span> __name__==<span class="string">"__main__"</span>:</span><br><span class="line">    print(<span class="string">'-----------句子、段落------------'</span>)</span><br><span class="line">    doc1 = <span class="string">'今天的天气不错,我们去水库烧烤吧!水库的风景好!'</span></span><br><span class="line">    doc2 = <span class="string">'今天的天气不好,我们去烧烤店吧!上次去的那家就不错!'</span></span><br><span class="line">    </span><br><span class="line">    docs = [doc1]+[doc2]</span><br><span class="line">    docs_wordlist = []</span><br><span class="line">    <span class="keyword">for</span> doc <span class="keyword">in</span> docs:</span><br><span class="line">        words = tokenization(doc)</span><br><span class="line">        docs_wordlist += [words]</span><br><span class="line">    m1 = Coword_matrix(docs_wordlist)</span><br><span class="line">    Coword_matrix1 = m1.get_Coword_matrix()</span><br><span class="line">    print(Coword_matrix1)</span><br><span class="line">    word_row1 = m1.get_word_row(<span class="string">'水库'</span>)</span><br><span class="line">    print(word_row1)</span><br><span class="line">    </span><br><span class="line">    print(<span class="string">'-----------上下文------------'</span>)</span><br><span class="line">    docs_wordlist2 = [</span><br><span class="line">            [<span class="string">'今天'</span>,<span class="string">'的'</span>],</span><br><span class="line">            [<span class="string">'的'</span>,<span class="string">'天气'</span>],</span><br><span class="line">            [<span class="string">'天气'</span>,<span class="string">'不错'</span>],</span><br><span class="line">            [<span class="string">'不错'</span>,<span class="string">'我们'</span>],</span><br><span class="line">            [<span class="string">'我们'</span>,<span class="string">'去'</span>]</span><br><span class="line">           ]</span><br><span class="line">    m2 = Coword_matrix(docs_wordlist2)</span><br><span class="line">    Coword_matrix2 = m2.get_Coword_matrix()</span><br><span class="line">    print(Coword_matrix2)</span><br><span class="line">    word_row2 = m2.get_word_row(<span class="string">'我们'</span>)</span><br><span class="line">    print(word_row2)</span><br></pre></td></tr></table></figure>
+
+<h2 id="二、Word2Vec"><a href="#二、Word2Vec" class="headerlink" title="二、Word2Vec"></a>二、Word2Vec</h2><p>谷歌2013年提出的Word2Vec是目前最常用的词嵌入模型之一。Word2Vec实际 是一种浅层的神经网络模型，它有两种网络结构，分别是CBOW（Continues Bag of Words）连续词袋和Skip-gram。连续词袋模型（即CBOW模型）和跳字模型（Skip-gram模型），这两种模型都是在给定语境的条件下预测目标词或者在给定词的条件下预测语境（这里的”语境”指的是文本中词的滑动窗口）。</p>
+<h5 id="1、连续词袋模型（Continuous-Bag-of-Words，简称-CBOW）"><a href="#1、连续词袋模型（Continuous-Bag-of-Words，简称-CBOW）" class="headerlink" title="1、连续词袋模型（Continuous Bag of Words，简称 CBOW）"></a>1、连续词袋模型（Continuous Bag of Words，简称 CBOW）</h5><p>CBOW模型的训练输入是某一个特征词的上下文相关的词对应的词向量，而输出就是这特定的一个词的词向量。比如上面的第一句话，将上下文大小取值为2，特定的这个词是”go”，也就是我们需要的输出词向量，上下文对应的词有4个，前后各2个，这4个词是我们模型的输入。由于CBOW使用的是词袋模型，因此这4个词都是平等的，也就是不考虑他们和我们关注的词之间的距离大小，只要在我们上下文之内即可。<br>这样我们这个CBOW的例子里，我们的输入是4个词向量，输出是所有词的softmax概率（训练的目标是期望训练样本特定词对应的softmax概率最大），对应的CBOW神经网络模型输入层有4个神经元，输出层有词汇表大小个神经元。隐藏层的神经元个数我们可以自己指定。通过DNN的反向传播算法，我们可以求出DNN模型的参数，同时得到所有的词对应的词向量。这样当我们有新的需求，要求出某4个词对应的最可能的输出中心词时，我们可以通过一次DNN前向传播算法并通过softmax激活函数找到概率最大的词对应的神经元即可。</p>
+<h5 id="2、跳字模型（Skip-Gram）"><a href="#2、跳字模型（Skip-Gram）" class="headerlink" title="2、跳字模型（Skip-Gram）"></a>2、跳字模型（Skip-Gram）</h5><p>Skip-Gram模型和CBOW的思路是反着来的，即输入是特定的一个词的词向量，而输出是特定词对应的上下文词向量。还是上面的例子，我们的上下文大小取值为2， 特定的这个词”go”是我们的输入，而这4个上下文词是我们的输出。<br>这样我们这个Skip-Gram的例子里，我们的输入是特定词， 输出是softmax概率排前4的4个词，对应的Skip-Gram神经网络模型输入层有1个神经元，输出层有词汇表大小个神经元。隐藏层的神经元个数我们可以自己指定。通过DNN的反向传播算法，我们可以求出DNN模型的参数，同时得到所有的词对应的词向量。这样当我们有新的需求，要求出某1个词对应的最可能的4个上下文词时，我们可以通过一次DNN前向传播算法得到概率大小排前4的softmax概率对应的神经元所对应的词即可。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#-*- coding:utf-8 -*-</span></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> os,re,jieba</span><br><span class="line"><span class="keyword">from</span> gensim.models <span class="keyword">import</span> word2vec</span><br><span class="line">FILE_DIR = os.path.dirname(os.path.abspath(__file__))</span><br><span class="line"><span class="keyword">import</span> warnings; warnings.filterwarnings(action=<span class="string">'ignore'</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  分词</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">tokenization</span><span class="params">(doc, userlist=False, stopwords=False)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    分词功能</span></span><br><span class="line"><span class="string">    INPUT  -&gt; 输入文本, 是否使用自定义词典, 是否过滤停用词</span></span><br><span class="line"><span class="string">    OUTPUT -&gt; 分词列表</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="keyword">if</span> userlist:</span><br><span class="line">            jieba.load_userdict(FILE_DIR+<span class="string">"/userdict.txt"</span>)</span><br><span class="line">        cleaner = re.compile(<span class="string">r'&lt;[^&gt;]+&gt;'</span>,re.S)</span><br><span class="line">        doc_clean = cleaner.sub(<span class="string">''</span>, doc)</span><br><span class="line">        wordlist = jieba.lcut(doc_clean, cut_all=<span class="literal">False</span>)</span><br><span class="line">        <span class="comment"># 去数字</span></span><br><span class="line">        wordlist = [v <span class="keyword">for</span> v <span class="keyword">in</span> wordlist <span class="keyword">if</span> <span class="keyword">not</span> str(v).isdigit()]</span><br><span class="line">        <span class="comment"># 去左右空格</span></span><br><span class="line">        wordlist = list(filter(<span class="keyword">lambda</span> x:x.strip(), wordlist))</span><br><span class="line">        <span class="comment"># 去掉长度等于1的词</span></span><br><span class="line">        <span class="comment"># wordlist = list(filter(lambda x:len(x)&gt;1, wordlist))</span></span><br><span class="line">        <span class="comment"># 过滤标点符号(一般的中文文本分析都不需要标点)</span></span><br><span class="line">        wordlist = list(filter(<span class="keyword">lambda</span> x:x <span class="keyword">not</span> <span class="keyword">in</span> [<span class="string">'，'</span>,<span class="string">','</span>,<span class="string">'。'</span>,<span class="string">'?'</span>,<span class="string">'？'</span>,<span class="string">'、'</span>,<span class="string">':'</span>,<span class="string">'：'</span>,<span class="string">'!'</span>,<span class="string">'！'</span>,<span class="string">'('</span>,<span class="string">')'</span>,<span class="string">'（'</span>,<span class="string">'）'</span>,<span class="string">'《'</span>,<span class="string">'》'</span>,<span class="string">'-'</span>,<span class="string">'`'</span>,<span class="string">'~'</span>,<span class="string">'#'</span>,<span class="string">'@'</span>,<span class="string">'&amp;'</span>,<span class="string">'*'</span>,<span class="string">'$'</span>,<span class="string">'%'</span>,<span class="string">'^'</span>,<span class="string">'+'</span>,<span class="string">'_'</span>,<span class="string">'/'</span>,<span class="string">'“'</span>,<span class="string">'”'</span>,<span class="string">'['</span>,<span class="string">']'</span>,<span class="string">'&#123;'</span>,<span class="string">'&#125;'</span>], wordlist)) </span><br><span class="line">        <span class="keyword">if</span> stopwords:</span><br><span class="line">            <span class="comment"># stopwords = pd.read_table(FILE_DIR+"/stopwords.txt").values</span></span><br><span class="line">            stopwords = set(<span class="string">'的 和 会 具有 形成 可以 通过'</span>.split())</span><br><span class="line">            wordlist = list(filter(<span class="keyword">lambda</span> x:x <span class="keyword">not</span> <span class="keyword">in</span> stopwords, wordlist))</span><br><span class="line">        <span class="keyword">return</span> wordlist</span><br><span class="line">    <span class="keyword">except</span> Exception:</span><br><span class="line">        print(doc)</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  文本表示</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">make_corpus</span><span class="params">(path, filename)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    对原始语料预处理,生成可供训练的语料</span></span><br><span class="line"><span class="string">    INPUT  -&gt; 文件目录, 文件名</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    origin_file = path+<span class="string">'/'</span>+filename</span><br><span class="line">    train_file = path+<span class="string">'/'</span>+filename+<span class="string">'_cut.txt'</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        fi = open(origin_file, <span class="string">'rb'</span>)</span><br><span class="line">    <span class="keyword">except</span> BaseException <span class="keyword">as</span> e:</span><br><span class="line">        print(Exception, <span class="string">":"</span>, e)</span><br><span class="line">    doc = fi.read()</span><br><span class="line">    new_doc = tokenization(doc)</span><br><span class="line">    str_out = <span class="string">' '</span>.join(new_doc)</span><br><span class="line">    fo = open(train_file, <span class="string">'w'</span>, encoding=<span class="string">'utf-8'</span>)</span><br><span class="line">    fo.write(str_out)</span><br><span class="line">    fo.close()</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">word2vec_train</span><span class="params">(train_file, save_model_name)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    训练词向量模型(word2vec版)</span></span><br><span class="line"><span class="string">    INPUT  -&gt; 训练语料地址, 模型保存的名称</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    corpus_path = FILE_DIR+<span class="string">'/'</span>+train_file</span><br><span class="line">    model_path = FILE_DIR+<span class="string">'/'</span>+save_model_name+<span class="string">'.bin'</span></span><br><span class="line"></span><br><span class="line">    corpus_file = word2vec.Text8Corpus(corpus_path)</span><br><span class="line">    <span class="comment"># 训练skip-gram模型</span></span><br><span class="line">    model = word2vec.Word2Vec(corpus_file,  <span class="comment"># 训练语料</span></span><br><span class="line">                              sg=<span class="number">1</span>,  <span class="comment"># 1是skip-gram算法(对低频词敏感),0是CBOW算法</span></span><br><span class="line">                              size=<span class="number">150</span>,  <span class="comment"># 是输出词向量的维数,一般取100-200间(太小会导致映射冲突,太大消耗内存)</span></span><br><span class="line">                              window=<span class="number">5</span>,  <span class="comment"># 句子中当前词语目标词之间的最大距离(前看n个词,后看n个词)</span></span><br><span class="line">                              min_count=<span class="number">1</span>, <span class="comment"># 对词进行过滤,小于n的词会被忽视,默认为5</span></span><br><span class="line">                              alpha=<span class="number">0.025</span>,  <span class="comment"># 学习率</span></span><br><span class="line">                              workers=<span class="number">4</span>,  <span class="comment"># 并发训练时候的线程数，仅当Cython安装的情况下才会起作用</span></span><br><span class="line">                              iter=<span class="number">5</span>,  <span class="comment"># 训练周期,默认是5</span></span><br><span class="line">                              )</span><br><span class="line">    <span class="comment"># model.save(FILE_DIR+'/'+save_model_name)</span></span><br><span class="line">    <span class="comment"># 以二进制类型保存模型以便重用</span></span><br><span class="line">    model.wv.save_word2vec_format(model_path, binary=<span class="literal">True</span>)</span><br></pre></td></tr></table></figure>
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/c/6文本向量化之离散表示/" rel="next" title="文本表示之离散表示">
+                  <i class="fa fa-chevron-left"></i> 文本表示之离散表示
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/b/1计算机视觉的几个概念/" rel="prev" title="计算机视觉的几个概念">
+                  计算机视觉的几个概念 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">148</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>
