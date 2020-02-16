@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="生成对抗网络(GAN)是由两个相互竞争的网络组成的深度神经网络架构。">
+<meta name="keywords" content="数据科学 比特猫 Byte猫">
+<meta property="og:type" content="article">
+<meta property="og:title" content="生成对抗网络介绍">
+<meta property="og:url" content="https://smallchao.github.io/d/1生成对抗网络介绍/index.html">
+<meta property="og:site_name" content="Byte猫">
+<meta property="og:description" content="生成对抗网络(GAN)是由两个相互竞争的网络组成的深度神经网络架构。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/7444748-3d513e01ff19229e.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/7444748-346b73ca3e22b38d.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/7444748-c0f43d8fa0da684d.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/7444748-bb4b5dff24ebbf8e.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/7444748-8285d4e17dd6864a.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/7444748-d9c88f92bbbdca9a.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/7444748-447ddb6940d748ac.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/11994763-07b3adde985c6d91.jpg">
+<meta property="og:updated_time" content="2020-02-15T15:14:12.821Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="生成对抗网络介绍">
+<meta name="twitter:description" content="生成对抗网络(GAN)是由两个相互竞争的网络组成的深度神经网络架构。">
+<meta name="twitter:image" content="https://smallchao.github.io/upload_images/7444748-3d513e01ff19229e.png">
+  <link rel="canonical" href="https://smallchao.github.io/d/1生成对抗网络介绍/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>生成对抗网络介绍 | Byte猫</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Byte猫</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">唤醒数据的价值</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据科学知识">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据科学知识</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-机器学习原理">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>机器学习原理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-神经网络与深度学习">
+      
+    
+
+    <a href="/categories/a" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>神经网络与深度学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】计算机视觉">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】计算机视觉</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】自然语言处理">
+      
+    
+
+    <a href="/categories/c" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】自然语言处理</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-【分支】生成对抗网络">
+      
+    
+
+    <a href="/categories/d" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>【分支】生成对抗网络</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-图算法与图学习">
+      
+    
+
+    <a href="/categories/y" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>图算法与图学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-个性化推荐">
+      
+    
+
+    <a href="/categories/z" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>个性化推荐</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/d/1生成对抗网络介绍/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Byte猫">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">生成对抗网络介绍
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-15 23:14:12" itemprop="dateModified" datetime="2020-02-15T23:14:12+08:00">2020-02-15</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">生成对抗网络(GAN)是由两个相互竞争的网络组成的深度神经网络架构。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <p>生成对抗网络(GAN)是由两个相互竞争的网络组成的深度神经网络架构。</p><h2 id="一、生成模型和判别模型"><a href="#一、生成模型和判别模型" class="headerlink" title="一、生成模型和判别模型"></a>一、生成模型和判别模型</h2><p>为了理解生成对抗网络，首先应该了解生成算法的是如何工作的，为此，现将生成算法和判别算法进行对比以便更好的理解。</p><a id="more"></a>
+
+<h4 id="1、判别算法"><a href="#1、判别算法" class="headerlink" title="1、判别算法"></a>1、判别算法</h4><p>判别算法试图对输入数据进行分类：即给定一个数据实例的特征，来预测该数据所属的标注或类别。<br>介绍判别算法的一个典型例子是垃圾邮件分类，即给定一封电子邮件的所有单词预测该邮件是否为垃圾邮件。邮件的类型是标注，从邮件中收集到的单词则构成了输入数据的特征。用数学表达式表述这一问题，y表示标注，x表示特征，公式p(y|x)表示”给定x，y的概率”，则该事件可描述为”给定邮件中所包含的单词，邮件为垃圾邮件的概率”。因此，判别算法将特征映射到标注，只关注二者之间的相关性。</p>
+<h4 id="2、生成算法"><a href="#2、生成算法" class="headerlink" title="2、生成算法"></a>2、生成算法</h4><p>一种理解生成算法的方式是，生成算法做和判别算法相反的事情。生成算法并不预测给定特征的标注，而是试图预测给定标注的特征。<br>还以垃圾邮件分类为例子，生成算法试图解决的问题是”假设这封电子邮件为垃圾邮件，它的特征可能是什么？”。用数学表达式表述这一问题，公式p(x|y)表示”给定y，x的概率”。因此，生成算法学习的是数据生成的机制。</p>
+<h2 id="二、生成对抗网络的基本原理"><a href="#二、生成对抗网络的基本原理" class="headerlink" title="二、生成对抗网络的基本原理"></a>二、生成对抗网络的基本原理</h2><h4 id="1、大白话版本"><a href="#1、大白话版本" class="headerlink" title="1、大白话版本"></a>1、大白话版本</h4><p>假设一个城市治安混乱，很快，这个城市里就会出现无数的小偷。在这些小偷中，有的可能是盗窃高手，有的可能毫无技术可言。假如这个城市开始整饬其治安，突然开展一场打击犯罪的「运动」，警察们开始恢复城市中的巡逻，很快，一批「学艺不精」的小偷就被捉住了。之所以捉住的是那些没有技术含量的小偷，是因为警察们的技术也不行了，在捉住一批低端小偷后，城市的治安水平变得怎样倒还不好说，但很明显，城市里小偷们的平均水平已经大大提高了。</p>
+<p><img src="/upload_images/7444748-3d513e01ff19229e.png" alt></p>
+<p>警察们开始继续训练自己的破案技术，开始抓住那些越来越狡猾的小偷。随着这些职业惯犯们的落网，警察们也练就了特别的本事，他们能很快能从一群人中发现可疑人员，于是上前盘查，并最终逮捕嫌犯；小偷们的日子也不好过了，因为警察们的水平大大提高，如果还想以前那样表现得鬼鬼祟祟，那么很快就会被警察捉住。</p>
+<p><img src="/upload_images/7444748-346b73ca3e22b38d.png" alt></p>
+<p>为了避免被捕，小偷们努力表现得不那么「可疑」，而魔高一尺、道高一丈，警察也在不断提高自己的水平，争取将小偷和无辜的普通群众区分开。随着警察和小偷之间的这种「交流」与「切磋」，小偷们都变得非常谨慎，他们有着极高的偷窃技巧，表现得跟普通群众一模一样，而警察们都练就了「火眼金睛」，一旦发现可疑人员，就能马上发现并及时控制——最终，我们同时得到了最强的小偷和最强的警察。</p>
+<p><img src="/upload_images/7444748-c0f43d8fa0da684d.png" alt></p>
+<h4 id="2、非大白话版本"><a href="#2、非大白话版本" class="headerlink" title="2、非大白话版本"></a>2、非大白话版本</h4><p>生成对抗网络（GANs）由2个重要的部分构成：<br>生成器(Generator)：通过机器生成数据（大部分情况下是图像），目的是“骗过”判别器<br>判别器(Discriminator)：判断这张图像是真实的还是机器生成的，目的是找出生成器做的“假数据”</p>
+<p><img src="/upload_images/7444748-bb4b5dff24ebbf8e.png" alt></p>
+<p>下面详细介绍一下过程：<br><strong>第一阶段：</strong>固定「判别器D」，训练「生成器G」<br>我们使用一个还 OK 判别器，让一个「生成器G」不断生成”假数据”，然后给这个「判别器D」去判断。<br>一开始，「生成器G」还很弱，所以很容易被揪出来。但是随着不断的训练，「生成器G」技能不断提升，最终骗过了「判别器D」。到了这个时候，「判别器D」基本属于瞎猜的状态，判断是否为假数据的概率为50%。</p>
+<p><img src="/upload_images/7444748-8285d4e17dd6864a.png" alt></p>
+<p><strong>第二阶段：</strong>固定「生成器G」，训练「判别器D」<br>当通过了第一阶段，继续训练「生成器G」就没有意义了。这个时候我们固定「生成器G」，然后开始训练「判别器D」。<br>「判别器D」通过不断训练，提高了自己的鉴别能力，最终它可以准确的判断出所有的假数据。到了这个时候，「生成器G」已经无法骗过「判别器D」。</p>
+<p><img src="/upload_images/7444748-d9c88f92bbbdca9a.png" alt></p>
+<p><strong>循环阶段一和阶段二</strong></p>
+<p>通过不断的循环，「生成器G」和「判别器D」的能力都越来越强。<br>最终我们得到了一个效果非常好的「生成器G」，我们就可以用它来生成我们想要的数据了。</p>
+<p><img src="/upload_images/7444748-447ddb6940d748ac.png" alt></p>
+<h2 id="三、生成对抗网络的意义"><a href="#三、生成对抗网络的意义" class="headerlink" title="三、生成对抗网络的意义"></a>三、生成对抗网络的意义</h2><p>在早期的传统机器学习时代，人们需要精心设计如何从数据中提取有用的特征，设计针对特定任务的目标函数，再利用一些通用的优化算法来搭建机器学习系统。在深度学习崛起之后，人们很大程度上不再依赖于精心设计的特征，而让神经网络去自动学习有用的特征。但针对具体任务，我们还是需要设计具体的目标函数以约束模型的学习方向，否则学习出来的模型所做的事可能并不是我们原来所设想的那样。但是，自从有了生成对抗网络，我们在很多场景中不再需要精心设计的目标函数了，而是让判别器自己学，效果会更好。</p>
+<p><img src="/upload_images/11994763-07b3adde985c6d91.jpg" alt></p>
+
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/b/17实现一个简单的蔬菜检测项目/" rel="next" title="实现一个简单的蔬菜检测项目">
+                  <i class="fa fa-chevron-left"></i> 实现一个简单的蔬菜检测项目
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/d/2实现用GAN生成手写数字/" rel="prev" title="实现用GAN生成手写数字">
+                  实现用GAN生成手写数字 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">150</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">13</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>
