@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="在大多数的真实问题，特征间不具备强线性关系，这时就需要用到非线性映射方法。">
+<meta name="keywords" content="数据科学 比特猫 Byte猫">
+<meta property="og:type" content="article">
+<meta property="og:title" content="非监督学习之降维算法（3）-- 非线性映射">
+<meta property="og:url" content="https://smallchao.github.io/9/0.3非监督学习之降维算法（3） --非线性降维/index.html">
+<meta property="og:site_name" content="Byte猫">
+<meta property="og:description" content="在大多数的真实问题，特征间不具备强线性关系，这时就需要用到非线性映射方法。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-f75f52b7e9c0d6cc.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-5d90483bc2fdd770.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-52d73386835c5892.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-87d32f09c4d0d370.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-192317688530827e.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-9f5f9f15776af4a4.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-504ce888852695fa.png">
+<meta property="og:updated_time" content="2020-08-14T11:36:26.847Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="非监督学习之降维算法（3）-- 非线性映射">
+<meta name="twitter:description" content="在大多数的真实问题，特征间不具备强线性关系，这时就需要用到非线性映射方法。">
+<meta name="twitter:image" content="https://smallchao.github.io/upload_images/9210113-f75f52b7e9c0d6cc.png">
+  <link rel="canonical" href="https://smallchao.github.io/9/0.3非监督学习之降维算法（3） --非线性降维/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>非监督学习之降维算法（3）-- 非线性映射 | Byte猫</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Byte猫</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">唤醒数据的价值</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-科学计算">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>科学计算</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-优化理论">
+      
+    
+
+    <a href="/categories/8" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>优化理论</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/9" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-神经网络与深度学习">
+      
+    
+
+    <a href="/categories/a" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>神经网络与深度学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-计算机视觉">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>计算机视觉</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-图算法与图学习">
+      
+    
+
+    <a href="/categories/c" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>图算法与图学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-空间计算">
+      
+    
+
+    <a href="/categories/d" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>空间计算</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/9/0.3非监督学习之降维算法（3） --非线性降维/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Byte猫">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">非监督学习之降维算法（3）-- 非线性映射
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-08-14 19:36:26" itemprop="dateModified" datetime="2020-08-14T19:36:26+08:00">2020-08-14</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">在大多数的真实问题，特征间不具备强线性关系，这时就需要用到非线性映射方法。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <p>非线性映射方法的代表方法有：核方法（核+线性），流形学习（ISOMap，LLE，LPP）</p><h2 id="核方法"><a href="#核方法" class="headerlink" title="核方法"></a>核方法</h2><p>代表方法有：KPCA，KFDA。</p><h3 id="1、KPCA算法"><a href="#1、KPCA算法" class="headerlink" title="1、KPCA算法"></a>1、KPCA算法</h3><p>核主成分分析是对PCA的一种推广，是一种非线性映射的方法。在Kernel PCA分析之中，我们认为原有数据有更高的维数，我们可以在更高维的空间（Hilbert Space）中做PCA分析（即在更高维空间里，把原始数据向不同的方向投影）。</p><a id="more"></a>
+
+
+<h4 id="（1）执行步骤"><a href="#（1）执行步骤" class="headerlink" title="（1）执行步骤"></a>（1）执行步骤</h4><p><strong>step 1:</strong>计算核矩阵<br><strong>step 2:</strong>中心化核矩阵<br><strong>step 3:</strong>计算中心化核矩阵的特征值、特征向量<br><strong>step 4:</strong>对特征值进行排序，选取大的特征值对应的特征向量，得到新的数据集</p>
+<h4 id="（2）代码实现"><a href="#（2）代码实现" class="headerlink" title="（2）代码实现"></a>（2）代码实现</h4><p>这里使用的是rbf核，还可以使用多项式核或sigmoid核，要想得到好的结果就要不断改变核参数，rbf效果好调一些，sigmoid不易找到好的参数，多项式核在一些范围效果不错，但两个参数调整需要好好找找</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> imp</span><br><span class="line"><span class="keyword">from</span> sklearn.datasets <span class="keyword">import</span> load_iris</span><br><span class="line"><span class="keyword">from</span> sklearn.decomposition <span class="keyword">import</span> KernelPCA</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> scipy.spatial.distance <span class="keyword">import</span> pdist, squareform</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">sigmoid</span><span class="params">(x, coef = <span class="number">0.25</span>)</span>:</span></span><br><span class="line">    x = np.dot(x, x.T)</span><br><span class="line">    <span class="keyword">return</span> np.tanh(coef*x+<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">linear</span><span class="params">(x)</span>:</span></span><br><span class="line">    x = np.dot(x, x.T)</span><br><span class="line">    <span class="keyword">return</span> x</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">rbf</span><span class="params">(x, gamma = <span class="number">15</span>)</span>:</span></span><br><span class="line">    sq_dists = pdist(x, <span class="string">'sqeuclidean'</span>)  <span class="comment"># 平方欧式距离</span></span><br><span class="line">    mat_sq_dists = squareform(sq_dists)  <span class="comment"># 将冗余的距离矩阵转换为简洁的距离矩阵</span></span><br><span class="line">    <span class="keyword">return</span> np.exp(-gamma*mat_sq_dists)  <span class="comment"># 计算对称核矩阵</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">kpca</span><span class="params">(data, n_dims=<span class="number">2</span>, kernel = rbf)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    KPCA降维</span></span><br><span class="line"><span class="string">    INPUT  -&gt; 需要降维的矩阵, 目标维数, 使用的核函数</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    <span class="comment"># 计算核矩阵</span></span><br><span class="line">    K = kernel(data)</span><br><span class="line">    <span class="comment"># 中心化核矩阵</span></span><br><span class="line">    N = K.shape[<span class="number">0</span>]</span><br><span class="line">    one_n = np.ones((N, N)) / N</span><br><span class="line">    K = K - one_n.dot(K) - K.dot(one_n) + one_n.dot(K).dot(one_n)</span><br><span class="line">    <span class="comment"># 从中心化核矩阵中获取特征值、特征向量</span></span><br><span class="line">    eig_values, eig_vector = np.linalg.eig(K)</span><br><span class="line">    <span class="comment"># 产生新的数据矩阵</span></span><br><span class="line">    idx = eig_values.argsort()[::<span class="number">-1</span>]</span><br><span class="line">    eigval = eig_values[idx][:n_dims]</span><br><span class="line">    eigvector = eig_vector[:, idx][:, :n_dims]</span><br><span class="line">    eigval = eigval**(<span class="number">1</span>/<span class="number">2</span>)</span><br><span class="line">    vi = eigvector/eigval.reshape(<span class="number">-1</span>, n_dims)</span><br><span class="line">    data_n = np.dot(K, vi)</span><br><span class="line">    <span class="keyword">return</span> data_n</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:</span><br><span class="line">    data = load_iris().data</span><br><span class="line">    Y = load_iris().target</span><br><span class="line"></span><br><span class="line">    data_1 = kpca(data, kernel=rbf)</span><br><span class="line">    plt.figure(figsize=(<span class="number">8</span>,<span class="number">4</span>))</span><br><span class="line">    plt.subplot(<span class="number">121</span>)</span><br><span class="line">    plt.title(<span class="string">"my_KPCA"</span>)</span><br><span class="line">    plt.scatter(data_1[:, <span class="number">0</span>], data_1[:, <span class="number">1</span>], c = Y)</span><br><span class="line"></span><br><span class="line">    sklearn_kpca = KernelPCA(n_components=<span class="number">2</span>, kernel=<span class="string">"rbf"</span>, gamma=<span class="number">15</span>)</span><br><span class="line">    data_2 = sklearn_kpca.fit_transform(data)</span><br><span class="line">    plt.subplot(<span class="number">122</span>)</span><br><span class="line">    plt.title(<span class="string">"sklearn_KPCA"</span>)</span><br><span class="line">    plt.scatter(data_2[:, <span class="number">0</span>], data_2[:, <span class="number">1</span>], c = Y)</span><br><span class="line">    plt.show()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/upload_images/9210113-f75f52b7e9c0d6cc.png" alt></p>
+<h2 id="流形学习"><a href="#流形学习" class="headerlink" title="流形学习"></a>流形学习</h2><p>所谓流形（manifold）就是一般的几何对象的总称，直线或者曲线是一维流形，平面或者曲面是二维流形，更高维之后是多维流形。流形学习把一组在高维空间中的数据在低维空间中重新表示。不同的是，在流形学习中有一个假设，就是所处理的数据采样于一个潜在的流形上，或是说对于这组数据存在一个潜在的流形。<br>关于流形学习(Manifold Learning)最形象的解释莫过于下面的瑞士卷（Swiss roll）数据：</p>
+<p><img src="/upload_images/9210113-5d90483bc2fdd770.png" alt></p>
+<p>如果简单的使用投影（project）降维（例如通过压平第3维），那么会变成如下左图的样子，不同类别的样例都混在了一起，而我们的预想是变成右下图的形式。</p>
+<p><img src="/upload_images/9210113-52d73386835c5892.png" alt></p>
+<p>瑞士卷（Swiss roll）是二维流形的例子，它在高维（三维）空间中弯曲。更一般地，一个d维流形在n维空间弯曲（其中d＜n）。<br>流形学习的主要算法有：ISOMap（等距映射）、LE（拉普拉斯特征映射）、LLE（局部线性嵌入）。</p>
+<h3 id="1、ISOMap算法"><a href="#1、ISOMap算法" class="headerlink" title="1、ISOMap算法"></a>1、ISOMap算法</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> imp</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">from</span> sklearn.datasets <span class="keyword">import</span> make_s_curve</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> sklearn.manifold <span class="keyword">import</span> Isomap</span><br><span class="line"><span class="keyword">from</span> mpl_toolkits.mplot3d <span class="keyword">import</span> Axes3D</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">floyd</span><span class="params">(D,n_neighbors=<span class="number">15</span>)</span>:</span></span><br><span class="line">    Max = np.max(D)*<span class="number">1000</span></span><br><span class="line">    n1,n2 = D.shape</span><br><span class="line">    k = n_neighbors</span><br><span class="line">    D1 = np.ones((n1,n1))*Max</span><br><span class="line">    D_arg = np.argsort(D,axis=<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(n1):</span><br><span class="line">        D1[i,D_arg[i,<span class="number">0</span>:k+<span class="number">1</span>]] = D[i,D_arg[i,<span class="number">0</span>:k+<span class="number">1</span>]]</span><br><span class="line">    <span class="keyword">for</span> k <span class="keyword">in</span> range(n1):</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(n1):</span><br><span class="line">            <span class="keyword">for</span> j <span class="keyword">in</span> range(n1):</span><br><span class="line">                <span class="keyword">if</span> D1[i,k]+D1[k,j]&lt;D1[i,j]:</span><br><span class="line">                    D1[i,j] = D1[i,k]+D1[k,j]</span><br><span class="line">    <span class="keyword">return</span> D1</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cal_pairwise_dist</span><span class="params">(x)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    计算pairwise距离, x是matrix</span></span><br><span class="line"><span class="string">    (a-b)^2 = a^2 + b^2 - 2*a*b</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    sum_x = np.sum(np.square(x), <span class="number">1</span>)</span><br><span class="line">    dist = np.add(np.add(<span class="number">-2</span> * np.dot(x, x.T), sum_x).T, sum_x)</span><br><span class="line">    <span class="comment"># 返回任意两个点之间距离的平方</span></span><br><span class="line">    <span class="keyword">return</span> dist</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">my_mds</span><span class="params">(dist, n_dims)</span>:</span></span><br><span class="line">    dist = dist**<span class="number">2</span></span><br><span class="line">    n = dist.shape[<span class="number">0</span>]</span><br><span class="line">    T1 = np.ones((n,n))*np.sum(dist)/n**<span class="number">2</span></span><br><span class="line">    T2 = np.sum(dist, axis = <span class="number">1</span>)/n</span><br><span class="line">    T3 = np.sum(dist, axis = <span class="number">0</span>)/n</span><br><span class="line"></span><br><span class="line">    B = -(T1 - T2 - T3 + dist)/<span class="number">2</span></span><br><span class="line"></span><br><span class="line">    eig_val, eig_vector = np.linalg.eig(B)</span><br><span class="line">    index_ = np.argsort(-eig_val)[:n_dims]</span><br><span class="line">    picked_eig_val = eig_val[index_].real</span><br><span class="line">    picked_eig_vector = eig_vector[:, index_]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> picked_eig_vector*picked_eig_val**(<span class="number">0.5</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">my_Isomap</span><span class="params">(data,n=<span class="number">2</span>,n_neighbors=<span class="number">30</span>)</span>:</span></span><br><span class="line">    D = (cal_pairwise_dist(data)+<span class="number">0.0001</span>) ** <span class="number">0.5</span></span><br><span class="line">    D_floyd=floyd(D, n_neighbors)</span><br><span class="line">    data_n = my_mds(D_floyd, n_dims=n)</span><br><span class="line">    <span class="keyword">return</span> data_n</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">scatter_3d</span><span class="params">(X, y)</span>:</span></span><br><span class="line">    fig = plt.figure(figsize=(<span class="number">6</span>, <span class="number">5</span>))</span><br><span class="line">    ax = fig.add_subplot(<span class="number">111</span>, projection=<span class="string">'3d'</span>)</span><br><span class="line">    ax.scatter(X[:, <span class="number">0</span>], X[:, <span class="number">1</span>], X[:, <span class="number">2</span>], c=y, cmap=plt.cm.hot)</span><br><span class="line">    ax.view_init(<span class="number">10</span>, <span class="number">-70</span>)</span><br><span class="line">    ax.set_xlabel(<span class="string">"$x_1$"</span>, fontsize=<span class="number">18</span>)</span><br><span class="line">    ax.set_ylabel(<span class="string">"$x_2$"</span>, fontsize=<span class="number">18</span>)</span><br><span class="line">    ax.set_zlabel(<span class="string">"$x_3$"</span>, fontsize=<span class="number">18</span>)</span><br><span class="line">    plt.show()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    X, Y = make_s_curve(n_samples = <span class="number">200</span>,</span><br><span class="line">                        noise = <span class="number">0.1</span>,</span><br><span class="line">                        random_state = <span class="number">42</span>)</span><br><span class="line"></span><br><span class="line">    data_1 = my_Isomap(X, <span class="number">2</span>, <span class="number">10</span>)</span><br><span class="line">    plt.figure(figsize=(<span class="number">8</span>,<span class="number">4</span>))</span><br><span class="line">    plt.subplot(<span class="number">121</span>)</span><br><span class="line">    plt.title(<span class="string">"my_Isomap"</span>)</span><br><span class="line">    plt.scatter(data_1[:, <span class="number">0</span>], data_1[:, <span class="number">1</span>], c = Y)</span><br><span class="line"></span><br><span class="line">    data_2 = Isomap(n_neighbors = <span class="number">10</span>, n_components = <span class="number">2</span>).fit_transform(X)</span><br><span class="line">    plt.subplot(<span class="number">122</span>)</span><br><span class="line">    plt.title(<span class="string">"sklearn_Isomap"</span>)</span><br><span class="line">    plt.scatter(data_2[:, <span class="number">0</span>], data_2[:, <span class="number">1</span>], c = Y)</span><br><span class="line">    plt.savefig(<span class="string">"Isomap.png"</span>)</span><br><span class="line">    plt.show()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/upload_images/9210113-87d32f09c4d0d370.png" alt></p>
+<h3 id="2、LE算法"><a href="#2、LE算法" class="headerlink" title="2、LE算法"></a>2、LE算法</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> imp</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> sklearn.datasets <span class="keyword">import</span> load_digits</span><br><span class="line"><span class="keyword">from</span> mpl_toolkits.mplot3d <span class="keyword">import</span> Axes3D</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">make_swiss_roll</span><span class="params">(n_samples=<span class="number">100</span>, noise=<span class="number">0.0</span>, random_state=None)</span>:</span></span><br><span class="line">    t = <span class="number">1.5</span> * np.pi * (<span class="number">1</span> + <span class="number">2</span> * np.random.rand(<span class="number">1</span>, n_samples))</span><br><span class="line">    x = t * np.cos(t)</span><br><span class="line">    y = <span class="number">83</span> * np.random.rand(<span class="number">1</span>, n_samples)</span><br><span class="line">    z = t * np.sin(t)</span><br><span class="line">    X = np.concatenate((x, y, z))</span><br><span class="line">    X += noise * np.random.randn(<span class="number">3</span>, n_samples)</span><br><span class="line">    X = X.T</span><br><span class="line">    t = np.squeeze(t)</span><br><span class="line">    <span class="keyword">return</span> X, t</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">rbf</span><span class="params">(dist, t = <span class="number">1.0</span>)</span>:</span></span><br><span class="line">    <span class="keyword">return</span> np.exp(-(dist/t))</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cal_pairwise_dist</span><span class="params">(x)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    计算pairwise 距离, x是matrix</span></span><br><span class="line"><span class="string">    (a-b)^2 = a^2 + b^2 - 2*a*b</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    sum_x = np.sum(np.square(x), <span class="number">1</span>)</span><br><span class="line">    dist = np.add(np.add(<span class="number">-2</span> * np.dot(x, x.T), sum_x).T, sum_x)</span><br><span class="line">    <span class="comment"># 返回任意两个点之间距离的平方</span></span><br><span class="line">    <span class="keyword">return</span> dist</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cal_rbf_dist</span><span class="params">(data, n_neighbors = <span class="number">10</span>, t = <span class="number">1</span>)</span>:</span></span><br><span class="line">    dist = cal_pairwise_dist(data)</span><br><span class="line">    n = dist.shape[<span class="number">0</span>]</span><br><span class="line">    rbf_dist = rbf(dist, t)</span><br><span class="line"></span><br><span class="line">    W = np.zeros((n, n))</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(n):</span><br><span class="line">        index_ = np.argsort(dist[i])[<span class="number">1</span>:<span class="number">1</span>+n_neighbors]</span><br><span class="line">        W[i, index_] = rbf_dist[i, index_]</span><br><span class="line">        W[index_, i] = rbf_dist[index_, i]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> W</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">le</span><span class="params">(data, n_dims = <span class="number">2</span>, n_neighbors = <span class="number">5</span>, t = <span class="number">1.0</span>)</span>:</span></span><br><span class="line">    N = data.shape[<span class="number">0</span>]</span><br><span class="line">    W = cal_rbf_dist(data, n_neighbors, t)</span><br><span class="line">    D = np.zeros_like(W)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(N):</span><br><span class="line">        D[i,i] = np.sum(W[i])</span><br><span class="line">    D_inv = np.linalg.inv(D)</span><br><span class="line">    L = D - W</span><br><span class="line">    eig_val, eig_vec = np.linalg.eig(np.dot(D_inv, L))</span><br><span class="line">    sort_index_ = np.argsort(eig_val)</span><br><span class="line">    eig_val = eig_val[sort_index_]</span><br><span class="line">    <span class="comment"># print("eig_val[:10]: ", eig_val[:10])</span></span><br><span class="line">    j = <span class="number">0</span></span><br><span class="line">    <span class="keyword">while</span> eig_val[j] &lt; <span class="number">1e-6</span>:</span><br><span class="line">        j+=<span class="number">1</span></span><br><span class="line">    <span class="comment"># print("j: ", j)</span></span><br><span class="line">    sort_index_ = sort_index_[j:j+n_dims]</span><br><span class="line">    eig_val_picked = eig_val[j:j+n_dims]</span><br><span class="line">    <span class="comment"># print(eig_val_picked)</span></span><br><span class="line">    eig_vec_picked = eig_vec[:, sort_index_]</span><br><span class="line">    <span class="comment"># print(np.dot(np.dot(eig_vec_picked.T, D), eig_vec_picked))</span></span><br><span class="line">    X_ndim = eig_vec_picked</span><br><span class="line">    <span class="keyword">return</span> X_ndim</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    X = load_digits().data</span><br><span class="line">    y = load_digits().target</span><br><span class="line"></span><br><span class="line">    dist = cal_pairwise_dist(X)</span><br><span class="line">    max_dist = np.max(dist)</span><br><span class="line">    X_ndim = le(X, n_neighbors = <span class="number">20</span>, t = max_dist*<span class="number">0.1</span>)</span><br><span class="line">    plt.scatter(X_ndim[:, <span class="number">0</span>], X_ndim[:, <span class="number">1</span>], c = y)</span><br><span class="line">    plt.show()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/upload_images/9210113-192317688530827e.png" alt></p>
+<h3 id="3、LLE算法"><a href="#3、LLE算法" class="headerlink" title="3、LLE算法"></a>3、LLE算法</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> imp</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">from</span> sklearn.datasets <span class="keyword">import</span> make_s_curve</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> sklearn.manifold <span class="keyword">import</span> LocallyLinearEmbedding</span><br><span class="line"><span class="keyword">from</span> mpl_toolkits.mplot3d <span class="keyword">import</span> Axes3D</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cal_pairwise_dist</span><span class="params">(x)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    计算pairwise 距离, x是matrix</span></span><br><span class="line"><span class="string">    (a-b)^2 = a^2 + b^2 - 2*a*b</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    sum_x = np.sum(np.square(x), <span class="number">1</span>)</span><br><span class="line">    dist = np.add(np.add(<span class="number">-2</span> * np.dot(x, x.T), sum_x).T, sum_x)</span><br><span class="line">    <span class="comment"># 返回任意两个点之间距离的平方</span></span><br><span class="line">    <span class="keyword">return</span> dist</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_n_neighbors</span><span class="params">(data, n_neighbors = <span class="number">10</span>)</span>:</span></span><br><span class="line">    dist = cal_pairwise_dist(data)**<span class="number">0.5</span></span><br><span class="line">    n = dist.shape[<span class="number">0</span>]</span><br><span class="line">    N = np.zeros((n, n_neighbors))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(n):</span><br><span class="line">        index_ = np.argsort(dist[i])[<span class="number">1</span>:n_neighbors+<span class="number">1</span>]</span><br><span class="line">        N[i] = N[i] + index_</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> N.astype(np.int32)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">lle</span><span class="params">(data, n_dims = <span class="number">2</span>, n_neighbors = <span class="number">10</span>)</span>:</span></span><br><span class="line">    N = get_n_neighbors(data, n_neighbors)</span><br><span class="line">    n, D = data.shape</span><br><span class="line">    <span class="comment"># prevent Si to small</span></span><br><span class="line">    <span class="keyword">if</span> n_neighbors &gt; D:</span><br><span class="line">        tol = <span class="number">1e-3</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        tol = <span class="number">0</span></span><br><span class="line">    W = np.zeros((n_neighbors, n))</span><br><span class="line">    I = np.ones((n_neighbors, <span class="number">1</span>))</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(n):</span><br><span class="line">        Xi = np.tile(data[i], (n_neighbors, <span class="number">1</span>)).T</span><br><span class="line">        Ni = data[N[i]].T</span><br><span class="line">        Si = np.dot((Xi-Ni).T, (Xi-Ni))</span><br><span class="line">        Si = Si+np.eye(n_neighbors)*tol*np.trace(Si)</span><br><span class="line">        Si_inv = np.linalg.pinv(Si)</span><br><span class="line">        wi = (np.dot(Si_inv, I))/(np.dot(np.dot(I.T, Si_inv), I)[<span class="number">0</span>,<span class="number">0</span>])</span><br><span class="line">        W[:, i] = wi[:,<span class="number">0</span>]</span><br><span class="line">    W_y = np.zeros((n, n))</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(n):</span><br><span class="line">        index = N[i]</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(n_neighbors):</span><br><span class="line">            W_y[index[j],i] = W[j,i]</span><br><span class="line"></span><br><span class="line">    I_y = np.eye(n)</span><br><span class="line">    M = np.dot((I_y - W_y), (I_y - W_y).T)</span><br><span class="line"></span><br><span class="line">    eig_val, eig_vector = np.linalg.eig(M)</span><br><span class="line">    index_ = np.argsort(np.abs(eig_val))[<span class="number">1</span>:n_dims+<span class="number">1</span>]</span><br><span class="line">    Y = eig_vector[:, index_]</span><br><span class="line">    <span class="keyword">return</span> Y</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    X, Y = make_s_curve(n_samples = <span class="number">500</span>,</span><br><span class="line">                        noise = <span class="number">0.1</span>,</span><br><span class="line">                        random_state = <span class="number">42</span>)</span><br><span class="line"></span><br><span class="line">    data_1 =lle(X, n_neighbors = <span class="number">30</span>)</span><br><span class="line">    plt.figure(figsize=(<span class="number">8</span>,<span class="number">4</span>))</span><br><span class="line">    plt.subplot(<span class="number">121</span>)</span><br><span class="line">    plt.title(<span class="string">"my_LLE"</span>)</span><br><span class="line">    plt.scatter(data_1[:, <span class="number">0</span>], data_1[:, <span class="number">1</span>], c = Y)</span><br><span class="line"></span><br><span class="line">    data_2 = LocallyLinearEmbedding(n_components=<span class="number">2</span>, n_neighbors=<span class="number">30</span>).fit_transform(X)</span><br><span class="line">    plt.subplot(<span class="number">122</span>)</span><br><span class="line">    plt.title(<span class="string">"sklearn_LLE"</span>)</span><br><span class="line">    plt.scatter(data_2[:, <span class="number">0</span>], data_2[:, <span class="number">1</span>], c = Y)</span><br><span class="line">    plt.savefig(<span class="string">"LLE.png"</span>)</span><br><span class="line">    plt.show()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/upload_images/9210113-9f5f9f15776af4a4.png" alt></p>
+<h3 id="4、t-SNE算法"><a href="#4、t-SNE算法" class="headerlink" title="4、t-SNE算法"></a>4、t-SNE算法</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> imp</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">from</span> sklearn.datasets <span class="keyword">import</span> load_digits</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cal_pairwise_dist</span><span class="params">(x)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    计算pairwise 距离, x是matrix</span></span><br><span class="line"><span class="string">    (a-b)^2 = a^2 + b^2 - 2*a*b</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    sum_x = np.sum(np.square(x), <span class="number">1</span>)</span><br><span class="line">    dist = np.add(np.add(<span class="number">-2</span> * np.dot(x, x.T), sum_x).T, sum_x)</span><br><span class="line">    <span class="comment">#返回任意两个点之间距离的平方</span></span><br><span class="line">    <span class="keyword">return</span> dist</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cal_perplexity</span><span class="params">(dist, idx=<span class="number">0</span>, beta=<span class="number">1.0</span>)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    计算perplexity, D是距离向量，</span></span><br><span class="line"><span class="string">    idx指dist中自己与自己距离的位置，beta是高斯分布参数</span></span><br><span class="line"><span class="string">    这里的perp仅计算了熵，方便计算</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    prob = np.exp(-dist * beta)</span><br><span class="line">    <span class="comment"># 设置自身prob为0</span></span><br><span class="line">    prob[idx] = <span class="number">0</span></span><br><span class="line">    sum_prob = np.sum(prob)</span><br><span class="line">    <span class="keyword">if</span> sum_prob &lt; <span class="number">1e-12</span>:</span><br><span class="line">        prob = np.maximum(prob, <span class="number">1e-12</span>)</span><br><span class="line">        perp = <span class="number">-12</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        perp = np.log(sum_prob) + beta * np.sum(dist * prob) / sum_prob</span><br><span class="line">        prob /= sum_prob</span><br><span class="line">    <span class="keyword">return</span> perp, prob</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">seach_prob</span><span class="params">(x, tol=<span class="number">1e-5</span>, perplexity=<span class="number">30.0</span>)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    二分搜索寻找beta,并计算pairwise的prob</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    <span class="comment"># 初始化参数</span></span><br><span class="line">    print(<span class="string">"Computing pairwise distances..."</span>)</span><br><span class="line">    (n, d) = x.shape</span><br><span class="line">    dist = cal_pairwise_dist(x)</span><br><span class="line">    pair_prob = np.zeros((n, n))</span><br><span class="line">    beta = np.ones((n, <span class="number">1</span>))</span><br><span class="line">    <span class="comment"># 取log，方便后续计算</span></span><br><span class="line">    base_perp = np.log(perplexity)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(n):</span><br><span class="line">        <span class="keyword">if</span> i % <span class="number">500</span> == <span class="number">0</span>:</span><br><span class="line">            print(<span class="string">"Computing pair_prob for point %s of %s ..."</span> %(i,n))</span><br><span class="line">        betamin = -np.inf</span><br><span class="line">        betamax = np.inf</span><br><span class="line">        perp, this_prob = cal_perplexity(dist[i], i, beta[i])</span><br><span class="line">        <span class="comment"># 二分搜索,寻找最佳sigma下的prob</span></span><br><span class="line">        perp_diff = perp - base_perp</span><br><span class="line">        tries = <span class="number">0</span></span><br><span class="line">        <span class="keyword">while</span> np.abs(perp_diff) &gt; tol <span class="keyword">and</span> tries &lt; <span class="number">50</span>:</span><br><span class="line">            <span class="keyword">if</span> perp_diff &gt; <span class="number">0</span>:</span><br><span class="line">                betamin = beta[i].copy()</span><br><span class="line">                <span class="keyword">if</span> betamax == np.inf <span class="keyword">or</span> betamax == -np.inf:</span><br><span class="line">                    beta[i] = beta[i] * <span class="number">2</span></span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    beta[i] = (beta[i] + betamax) / <span class="number">2</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                betamax = beta[i].copy()</span><br><span class="line">                <span class="keyword">if</span> betamin == np.inf <span class="keyword">or</span> betamin == -np.inf:</span><br><span class="line">                    beta[i] = beta[i] / <span class="number">2</span></span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    beta[i] = (beta[i] + betamin) / <span class="number">2</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># 更新perb,prob值</span></span><br><span class="line">            perp, this_prob = cal_perplexity(dist[i], i, beta[i])</span><br><span class="line">            perp_diff = perp - base_perp</span><br><span class="line">            tries = tries + <span class="number">1</span></span><br><span class="line">        <span class="comment"># 记录prob值</span></span><br><span class="line">        pair_prob[i,] = this_prob</span><br><span class="line">    print(<span class="string">"Mean value of sigma: "</span>, np.mean(np.sqrt(<span class="number">1</span> / beta)))</span><br><span class="line">    <span class="comment">#每个点对其他点的条件概率分布pi\j</span></span><br><span class="line">    <span class="keyword">return</span> pair_prob</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">tsne</span><span class="params">(x, no_dims=<span class="number">2</span>, perplexity=<span class="number">30.0</span>, max_iter=<span class="number">1000</span>)</span>:</span></span><br><span class="line">    <span class="string">"""</span></span><br><span class="line"><span class="string">    Runs t-SNE on the dataset in the NxD array x</span></span><br><span class="line"><span class="string">    to reduce its dimensionality to no_dims dimensions.</span></span><br><span class="line"><span class="string">    The syntaxis of the function is Y = tsne.tsne(x, no_dims, perplexity),</span></span><br><span class="line"><span class="string">    where x is an NxD NumPy array.</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line">    <span class="comment"># Check inputs</span></span><br><span class="line">    <span class="keyword">if</span> isinstance(no_dims, float):</span><br><span class="line">        print(<span class="string">"Error: array x should have type float."</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span></span><br><span class="line">    (n, d) = x.shape</span><br><span class="line">    <span class="comment"># 动量</span></span><br><span class="line">    initial_momentum = <span class="number">0.5</span></span><br><span class="line">    final_momentum = <span class="number">0.8</span></span><br><span class="line">    eta = <span class="number">500</span></span><br><span class="line">    min_gain = <span class="number">0.01</span></span><br><span class="line">    <span class="comment"># 随机初始化Y</span></span><br><span class="line">    y = np.random.randn(n, no_dims)</span><br><span class="line">    <span class="comment"># dy梯度</span></span><br><span class="line">    dy = np.zeros((n, no_dims))</span><br><span class="line">    <span class="comment"># iy是什么</span></span><br><span class="line">    iy = np.zeros((n, no_dims))</span><br><span class="line">    gains = np.ones((n, no_dims))</span><br><span class="line">    <span class="comment"># 对称化</span></span><br><span class="line">    P = seach_prob(x, <span class="number">1e-5</span>, perplexity)</span><br><span class="line">    P = P + np.transpose(P)</span><br><span class="line">    P = P / np.sum(P)   <span class="comment">#pij</span></span><br><span class="line">    <span class="comment"># early exaggeration</span></span><br><span class="line">    <span class="comment"># pi\j，提前夸大</span></span><br><span class="line">    <span class="keyword">print</span> (<span class="string">"T-SNE DURING:%s"</span> % time.clock())</span><br><span class="line">    P = P * <span class="number">4</span></span><br><span class="line">    P = np.maximum(P, <span class="number">1e-12</span>)</span><br><span class="line">    <span class="comment"># Run iterations</span></span><br><span class="line">    <span class="keyword">for</span> iter <span class="keyword">in</span> range(max_iter):</span><br><span class="line">        <span class="comment"># Compute pairwise affinities</span></span><br><span class="line">        sum_y = np.sum(np.square(y), <span class="number">1</span>)</span><br><span class="line">        num = <span class="number">1</span> / (<span class="number">1</span> + np.add(np.add(<span class="number">-2</span> * np.dot(y, y.T), sum_y).T, sum_y))</span><br><span class="line">        num[range(n), range(n)] = <span class="number">0</span></span><br><span class="line">        Q = num / np.sum(num)   <span class="comment">#qij</span></span><br><span class="line">        Q = np.maximum(Q, <span class="number">1e-12</span>)    <span class="comment"># X与Y逐位比较取其大者</span></span><br><span class="line">        <span class="comment"># Compute gradient</span></span><br><span class="line">        <span class="comment"># np.tile(A,N) 重复数组AN次 [1],5 [1,1,1,1,1]</span></span><br><span class="line">        <span class="comment"># pij-qij</span></span><br><span class="line">        PQ = P - Q</span><br><span class="line">        <span class="comment"># 梯度dy</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(n):</span><br><span class="line">            dy[i,:] = np.sum(np.tile(PQ[:,i] * num[:,i], (no_dims, <span class="number">1</span>)).T * (y[i,:] - y), <span class="number">0</span>)</span><br><span class="line">        <span class="comment"># Perform the update</span></span><br><span class="line">        <span class="keyword">if</span> iter &lt; <span class="number">20</span>:</span><br><span class="line">            momentum = initial_momentum</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            momentum = final_momentum</span><br><span class="line"></span><br><span class="line">        gains = (gains + <span class="number">0.2</span>) * ((dy &gt; <span class="number">0</span>) != (iy &gt; <span class="number">0</span>)) + (gains * <span class="number">0.8</span>) * ((dy &gt; <span class="number">0</span>) == (iy &gt; <span class="number">0</span>))</span><br><span class="line">        gains[gains &lt; min_gain] = min_gain</span><br><span class="line">        <span class="comment"># 迭代</span></span><br><span class="line">        iy = momentum * iy - eta * (gains * dy)</span><br><span class="line">        y = y + iy</span><br><span class="line">        y = y - np.tile(np.mean(y, <span class="number">0</span>), (n, <span class="number">1</span>))</span><br><span class="line">        <span class="comment"># Compute current value of cost function\</span></span><br><span class="line">        <span class="keyword">if</span> (iter + <span class="number">1</span>) % <span class="number">100</span> == <span class="number">0</span>:</span><br><span class="line">            C = np.sum(P * np.log(P / Q))</span><br><span class="line">            print(<span class="string">"Iteration "</span>, (iter + <span class="number">1</span>), <span class="string">": error is "</span>, C)</span><br><span class="line">            <span class="keyword">if</span> (iter+<span class="number">1</span>) != <span class="number">100</span>:</span><br><span class="line">                ratio = C/oldC</span><br><span class="line">                print(<span class="string">"ratio "</span>, ratio)</span><br><span class="line">                <span class="keyword">if</span> ratio &gt;= <span class="number">0.95</span>:</span><br><span class="line">                    <span class="keyword">break</span></span><br><span class="line">            oldC = C</span><br><span class="line">        <span class="comment"># Stop lying about P-values</span></span><br><span class="line">        <span class="keyword">if</span> iter == <span class="number">100</span>:</span><br><span class="line">            P = P / <span class="number">4</span></span><br><span class="line">    print(<span class="string">"finished training!"</span>)</span><br><span class="line">    <span class="keyword">return</span> y</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:</span><br><span class="line">    digits = load_digits()</span><br><span class="line">    X = digits.data</span><br><span class="line">    Y = digits.target</span><br><span class="line"></span><br><span class="line">    data_2d = tsne(X, <span class="number">2</span>)</span><br><span class="line">    plt.scatter(data_2d[:, <span class="number">0</span>], data_2d[:, <span class="number">1</span>], c = Y)</span><br><span class="line">    plt.show()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/upload_images/9210113-504ce888852695fa.png" alt></p>
+<p><a href="https://github.com/heucoder/dimensionality_reduction_alo_codes" target="_blank" rel="noopener">拓展阅读</a></p>
+
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/9/0.2非监督学习之降维算法（2） --线性降维/" rel="next" title="非监督学习之降维算法（2）-- 线性映射">
+                  <i class="fa fa-chevron-left"></i> 非监督学习之降维算法（2）-- 线性映射
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/9/1非监督学习之聚类算法（1）/" rel="prev" title="非监督学习之聚类算法（1）">
+                  非监督学习之聚类算法（1） <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">187</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>

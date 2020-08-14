@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="贝叶斯分类是一类分类算法的总称，这类算法均以贝叶斯定理为基础，故统称为贝叶斯分类。而朴素朴素贝叶斯分类是贝叶斯分类中最简单，也是常见的一种分类方法。">
+<meta name="keywords" content="数据科学 比特猫 Byte猫">
+<meta property="og:type" content="article">
+<meta property="og:title" content="监督学习之概率模型">
+<meta property="og:url" content="https://smallchao.github.io/9/13监督学习之概率模型/index.html">
+<meta property="og:site_name" content="Byte猫">
+<meta property="og:description" content="贝叶斯分类是一类分类算法的总称，这类算法均以贝叶斯定理为基础，故统称为贝叶斯分类。而朴素朴素贝叶斯分类是贝叶斯分类中最简单，也是常见的一种分类方法。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-55331b0a700d8195.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-688ca95f8d3f924b.png">
+<meta property="og:image" content="https://smallchao.github.io/upload_images/9210113-a78946ac3fc6ec6f.png">
+<meta property="og:updated_time" content="2020-08-14T11:37:49.903Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="监督学习之概率模型">
+<meta name="twitter:description" content="贝叶斯分类是一类分类算法的总称，这类算法均以贝叶斯定理为基础，故统称为贝叶斯分类。而朴素朴素贝叶斯分类是贝叶斯分类中最简单，也是常见的一种分类方法。">
+<meta name="twitter:image" content="https://smallchao.github.io/upload_images/9210113-55331b0a700d8195.png">
+  <link rel="canonical" href="https://smallchao.github.io/9/13监督学习之概率模型/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>监督学习之概率模型 | Byte猫</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Byte猫</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">唤醒数据的价值</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-科学计算">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>科学计算</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-优化理论">
+      
+    
+
+    <a href="/categories/8" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>优化理论</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/9" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-神经网络与深度学习">
+      
+    
+
+    <a href="/categories/a" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>神经网络与深度学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-计算机视觉">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>计算机视觉</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-图算法与图学习">
+      
+    
+
+    <a href="/categories/c" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>图算法与图学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-空间计算">
+      
+    
+
+    <a href="/categories/d" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>空间计算</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/9/13监督学习之概率模型/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Byte猫">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">监督学习之概率模型
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-08-14 19:37:49" itemprop="dateModified" datetime="2020-08-14T19:37:49+08:00">2020-08-14</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">贝叶斯分类是一类分类算法的总称，这类算法均以贝叶斯定理为基础，故统称为贝叶斯分类。而朴素朴素贝叶斯分类是贝叶斯分类中最简单，也是常见的一种分类方法。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <p>贝叶斯分类是一类分类算法的总称，这类算法均以贝叶斯定理为基础，故统称为贝叶斯分类。而朴素朴素贝叶斯分类是贝叶斯分类中最简单，也是常见的一种分类方法。</p><h2 id="一、基本概念"><a href="#一、基本概念" class="headerlink" title="一、基本概念"></a>一、基本概念</h2><p><img src="/upload_images/9210113-55331b0a700d8195.png" alt></p><h4 id="1、贝叶斯定理"><a href="#1、贝叶斯定理" class="headerlink" title="1、贝叶斯定理"></a>1、贝叶斯定理</h4><a id="more"></a>
+
+<p>贝叶斯定理（英语：Bayes’ theorem）是概率论中的一个定理，它跟随机变量的条件概率以及边缘概率分布有关。在有些关于概率的解释中，贝叶斯定理（贝叶斯公式）能够告知我们如何利用新证据修改已有的看法。核心公式如下：</p>
+<blockquote>
+<p>$$P(A|B) = \frac{P(B|A)P(A)}{P(B)}$$</p>
+</blockquote>
+<p>通俗的讲解就是如果知道Ａ事件，Ｂ事件分别发生的概率，还有在Ａ事件发生时Ｂ事件发生的概率。根据上面公式就可以知道在Ｂ事件发生的情况下Ａ事件发生的概率是多少。</p>
+<h4 id="2、理解贝叶斯定理"><a href="#2、理解贝叶斯定理" class="headerlink" title="2、理解贝叶斯定理"></a>2、理解贝叶斯定理</h4><p>贝叶斯公式的深入理解：</p>
+<ul>
+<li>我们把P(A)称为”先验概率”，因为A还没有与事件B关联上。</li>
+<li>P(A|B)称为”后验概率”（Posterior probability），即在B事件发生之后，我们对A事件概率的重新评估。 </li>
+<li>P(B|A)/P(B)称为”可能性函数”（Likelyhood），这是一个调整因子，使得预估概率更接近真实概率。在这里，如果”可能性函数”P(B|A)/P(B)&gt;1，意味着”先验概率”被增强，事件A的发生的可能性变大；如果”可能性函数”=1，意味着B事件无助于判断事件A的可能性；如果”可能性函数”&lt;1，意味着”先验概率”被削弱，事件A的可能性变小。</li>
+</ul>
+<p>我们先预估一个”先验概率”，然后加入实验结果，看这个实验到底是增强还是削弱了”先验概率”，由此得到更接近事实的”后验概率”。<br>所以，贝叶斯定理可以理解为</p>
+<blockquote>
+<p>$$后验概率　＝　先验概率 ｘ 调整因子$$<br>$$P(A|B) = P(A)*\frac{P(B|A)}{P(B)}$$</p>
+</blockquote>
+<blockquote>
+<p><strong>利用贝叶斯公式计算真实患病概率</strong><br>某病症的医院检查结果为阳性，该检查准确率99%，又知道该病症在人群中发病概率为万分之一。那么计算自己检查结果为阳性且确实有病的概率。</p>
+</blockquote>
+<p><img src="/upload_images/9210113-688ca95f8d3f924b.png" alt="分母P(检查结果为阳性)=患病被查到+没患病被查到"></p>
+<p><img src="/upload_images/9210113-a78946ac3fc6ec6f.png" alt></p>
+<p>为什么检查结果为阳性且确实有病的概率是小于百分之一呢？因为检查结果的误诊率相对患病率要高很多。</p>
+<h2 id="二、朴素贝叶斯分类算法"><a href="#二、朴素贝叶斯分类算法" class="headerlink" title="二、朴素贝叶斯分类算法"></a>二、朴素贝叶斯分类算法</h2><p>叫它朴素贝叶斯分类是因为这种方法的思想真的很朴素，朴素贝叶斯的思想基础是这样的：对于给出的待分类项，求解在此项出现的条件下各个类别出现的概率，哪个最大，就认为此待分类项属于哪个类别。通俗来说，就好比这么个道理，你在街上看到一个黑人，我问你你猜这哥们哪里来的，你十有八九猜非洲。为什么呢？因为黑人中非洲人的比率最高，当然人家也可能是美洲人或亚洲人，但在没有其它可用信息下，我们会选择条件概率最大的类别，这就是朴素贝叶斯的思想基础。</p>
+<h4 id="1、执行步骤"><a href="#1、执行步骤" class="headerlink" title="1、执行步骤"></a>1、执行步骤</h4><p><strong>step 1：</strong>准备工作阶段，这个阶段的任务是为朴素贝叶斯分类做必要的准备，主要工作是根据具体情况确定特征属性，并对每个特征属性进行适当划分，然后由人工对一部分待分类项进行分类，形成训练样本集合。这一阶段的输入是所有待分类数据，输出是特征属性和训练样本。这一阶段是整个朴素贝叶斯分类中唯一需要人工完成的阶段，其质量对整个过程将有重要影响，分类器的质量很大程度上由特征属性、特征属性划分及训练样本质量决定。<br><strong>step 2：</strong>分类器训练阶段，这个阶段的任务就是生成分类器，主要工作是计算每个类别在训练样本中的出现频率及每个特征属性划分对每个类别的条件概率估计，并将结果记录。其输入是特征属性和训练样本，输出是分类器。这一阶段是机械性阶段，根据前面讨论的公式可以由程序自动计算完成。<br><strong>step 3：</strong>应用阶段。这个阶段的任务是使用分类器对待分类项进行分类，其输入是分类器和待分类项，输出是待分类项与类别的映射关系。这一阶段也是机械性阶段，由程序完成。</p>
+<h4 id="2、优缺点"><a href="#2、优缺点" class="headerlink" title="2、优缺点"></a>2、优缺点</h4><p>（1）优点</p>
+<ul>
+<li>算法逻辑简单,易于实现</li>
+<li>分类过程中时空开销小（假设特征相互独立，只会涉及到二维存储）</li>
+<li>对缺失数据不敏感，在数据较少的情况下依然可以使用该方法</li>
+</ul>
+<p>（2）缺点</p>
+<ul>
+<li>由于用先验数据去预测分类，因此存在误差</li>
+<li>要求特征变量关联性不强。如果特征变量的有些特征关联性较强或者特征之间的重要性不一样的时候效果就不是那么好。 </li>
+</ul>
+<h4 id="3、代码实现"><a href="#3、代码实现" class="headerlink" title="3、代码实现"></a>3、代码实现</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># coding:utf-8</span></span><br><span class="line"><span class="string">'''</span></span><br><span class="line"><span class="string">朴素贝叶斯算法</span></span><br><span class="line"><span class="string">'''</span></span><br><span class="line"><span class="keyword">from</span> numpy <span class="keyword">import</span> *</span><br><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> reduce</span><br><span class="line"></span><br><span class="line"><span class="comment"># 广告、垃圾标识</span></span><br><span class="line">adClass = <span class="number">1</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  生成训练集</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">createDataSet</span><span class="params">()</span> :</span></span><br><span class="line">    wordsList = [[<span class="string">'周六'</span>, <span class="string">'公司'</span>, <span class="string">'一起'</span>, <span class="string">'聚餐'</span>,<span class="string">'时间'</span>],</span><br><span class="line">                 [<span class="string">'优惠'</span>, <span class="string">'返利'</span>, <span class="string">'打折'</span>, <span class="string">'优惠'</span>, <span class="string">'金融'</span>, <span class="string">'理财'</span>],</span><br><span class="line">                 [<span class="string">'喜欢'</span>, <span class="string">'机器学习'</span>, <span class="string">'一起'</span>, <span class="string">'研究'</span>, <span class="string">'欢迎'</span>, <span class="string">'贝叶斯'</span>, <span class="string">'算法'</span>, <span class="string">'公式'</span>],</span><br><span class="line">                 [<span class="string">'公司'</span>, <span class="string">'发票'</span>, <span class="string">'税点'</span>, <span class="string">'优惠'</span>, <span class="string">'增值税'</span>, <span class="string">'打折'</span>],</span><br><span class="line">                 [<span class="string">'北京'</span>, <span class="string">'今天'</span>, <span class="string">'雾霾'</span>, <span class="string">'不宜'</span>, <span class="string">'外出'</span>, <span class="string">'时间'</span>, <span class="string">'在家'</span>, <span class="string">'讨论'</span>, <span class="string">'学习'</span>],</span><br><span class="line">                 [<span class="string">'招聘'</span>, <span class="string">'兼职'</span>, <span class="string">'日薪'</span>, <span class="string">'保险'</span>, <span class="string">'返利'</span>]]</span><br><span class="line">    <span class="comment"># 1 是垃圾邮件, 0 不是垃圾邮件</span></span><br><span class="line">    calssList = [<span class="number">0</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">1</span>]</span><br><span class="line">    <span class="keyword">return</span> wordsList, calssList</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  文本工具</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">doc2VecList</span><span class="params">(docList)</span> :</span></span><br><span class="line">    <span class="string">'''合并去重，生成包含所有单词的集合'''</span></span><br><span class="line">    <span class="keyword">return</span> list(reduce(<span class="keyword">lambda</span> x, y : set(x) | set(y), docList))</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">words2Vec</span><span class="params">(vecList, inputWords)</span> :</span></span><br><span class="line">    <span class="string">'''把单子转化为词向量'''</span></span><br><span class="line">    resultVec = [<span class="number">0</span>] * len(vecList)</span><br><span class="line">    <span class="keyword">for</span> word <span class="keyword">in</span> inputWords :</span><br><span class="line">        <span class="keyword">if</span> word <span class="keyword">in</span> vecList :</span><br><span class="line">            <span class="comment"># 在单词出现的位置上的计数加1</span></span><br><span class="line">            resultVec[vecList.index(word)] += <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span> :</span><br><span class="line">            print(<span class="string">'没有发现此单词'</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> array(resultVec)</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  朴素贝叶斯算法</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">trainNB</span><span class="params">(trainMatrix, trainClass)</span> :</span></span><br><span class="line">    <span class="string">'''计算，生成每个词对于类别上的概率'''</span></span><br><span class="line">    numTrainClass = len(trainClass)</span><br><span class="line">    numWords = len(trainMatrix[<span class="number">0</span>])</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 全部都初始化为1， 防止出现概率为0的情况出现</span></span><br><span class="line">    p0Num = ones(numWords)</span><br><span class="line">    p1Num = ones(numWords)</span><br><span class="line">    <span class="comment"># 相应的单词初始化为2</span></span><br><span class="line">    p0Words = <span class="number">2.0</span></span><br><span class="line">    p1Words = <span class="number">2.0</span></span><br><span class="line">    <span class="comment"># 统计每个分类的词的总数</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(numTrainClass) :</span><br><span class="line">        <span class="keyword">if</span> trainClass[i] == <span class="number">1</span> :</span><br><span class="line">            <span class="comment">#数组在对应的位置上相加</span></span><br><span class="line">            p1Num += trainMatrix[i]</span><br><span class="line">            p1Words += sum(trainMatrix[i])</span><br><span class="line">        <span class="keyword">else</span> :</span><br><span class="line">            p0Num += trainMatrix[i]</span><br><span class="line">            p0Words += sum(trainMatrix[i])</span><br><span class="line">    <span class="comment"># 计算每种类型里面， 每个单词出现的概率</span></span><br><span class="line">    p0Vec = log(p0Num / p0Words)</span><br><span class="line">    p1Vec = log(p1Num / p1Words)</span><br><span class="line">    <span class="comment"># 计算1出现的概率</span></span><br><span class="line">    pClass1 = sum(trainClass) / float(numTrainClass)</span><br><span class="line">    <span class="keyword">return</span> p0Vec, p1Vec, pClass1</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">classifyNB</span><span class="params">(testVec, p0Vec, p1Vec, pClass1)</span> :</span></span><br><span class="line">    <span class="string">'''朴素贝叶斯分类, max(p0， p1)作为推断的分类'''</span></span><br><span class="line">    <span class="comment"># y=x 是单调递增的， y=ln(x)也是单调递增的。 ， 如果x1 &gt; x2, 那么ln(x1) &gt; ln(x2)</span></span><br><span class="line">    <span class="comment"># 因为概率的值太小了，所以我们可以取ln， 根据对数特性ln(ab) = lna + lnb， 可以简化计算</span></span><br><span class="line">    <span class="comment"># sum是numpy的函数</span></span><br><span class="line">    p1 = sum(testVec * p1Vec) + log(pClass1)</span><br><span class="line">    p0 = sum(testVec * p0Vec) + log(<span class="number">1</span> - pClass1)</span><br><span class="line">    <span class="keyword">if</span> p0 &gt; p1 :</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">printClass</span><span class="params">(words, testClass)</span>:</span></span><br><span class="line">    <span class="keyword">if</span> testClass == adClass:</span><br><span class="line">        print(words, <span class="string">'推测为：广告邮件'</span>)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        print(words, <span class="string">'推测为：正常邮件'</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"><span class="comment">#  主程序</span></span><br><span class="line"><span class="comment">#========================================================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span> :</span><br><span class="line">    docList, classList = createDataSet()</span><br><span class="line">    <span class="comment"># 生成词典</span></span><br><span class="line">    allWordsVec = doc2VecList(docList)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 构建词向量矩阵</span></span><br><span class="line">    trainMat = list(map(<span class="keyword">lambda</span> x : words2Vec(allWordsVec, x), docList))</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 训练计算每个词在分类上的概率, p0V:每个单词在非分类出现的概率， p1V:每个单词在是分类出现的概率</span></span><br><span class="line">    p0V, p1V, pClass1 = trainNB(trainMat, classList)</span><br><span class="line">    testWords = [<span class="string">'公司'</span>, <span class="string">'聚餐'</span>, <span class="string">'讨论'</span>, <span class="string">'贝叶斯'</span>]</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 当前需要预测的词向量</span></span><br><span class="line">    testVec = words2Vec(allWordsVec, testWords)</span><br><span class="line">    <span class="comment"># 预测分类</span></span><br><span class="line">    testClass = classifyNB(testVec, p0V, p1V, pClass1)</span><br><span class="line">    printClass(testWords, testClass)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 预测</span></span><br><span class="line">    testWords = [<span class="string">'公司'</span>, <span class="string">'保险'</span>, <span class="string">'金融'</span>]</span><br><span class="line">    testVec = words2Vec(allWordsVec, testWords)</span><br><span class="line">    testClass = classifyNB(testVec, p0V, p1V, pClass1)</span><br><span class="line">    printClass(testWords, testClass)</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/9/12监督学习之线性模型（4）--共线性问题/" rel="next" title="监督学习之线性模型（4）-- 共线性问题">
+                  <i class="fa fa-chevron-left"></i> 监督学习之线性模型（4）-- 共线性问题
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/9/14监督学习之树模型（1）/" rel="prev" title="监督学习之树模型（1）">
+                  监督学习之树模型（1） <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">187</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>
