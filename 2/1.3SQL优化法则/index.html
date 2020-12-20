@@ -62,7 +62,7 @@
 <meta property="og:site_name" content="Byte猫">
 <meta property="og:description" content="SQL作为关系型数据库的标准语言，是IT从业人员必不可少的技能之一。SQL本身并不难学，编写查询语句也很容易，但是想要编写出能够高效运行的查询语句却有一定的难度。">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2020-11-26T18:38:46.009Z">
+<meta property="og:updated_time" content="2020-12-20T15:22:50.053Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="SQL优化法则">
 <meta name="twitter:description" content="SQL作为关系型数据库的标准语言，是IT从业人员必不可少的技能之一。SQL本身并不难学，编写查询语句也很容易，但是想要编写出能够高效运行的查询语句却有一定的难度。">
@@ -356,7 +356,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 02:38:46" itemprop="dateModified" datetime="2020-11-27T02:38:46+08:00">2020-11-27</time>
+                <time title="修改时间：2020-12-20 23:22:50" itemprop="dateModified" datetime="2020-12-20T23:22:50+08:00">2020-12-20</time>
               </span>
             
           
@@ -389,10 +389,10 @@
 </blockquote>
 <p>执行计划（execution plan，也叫查询计划或者解释计划）是数据库执行SQL语句的具体步骤，例如通过索引还是全表扫描访问表中的数据，连接查询的实现方式和连接的顺序等。如果SQL语句性能不够理想，我们首先应该查看它的执行计划，通过执行计划确保查询使用了正确的索引。</p>
 <h4 id="3、尽量避免使用子查询"><a href="#3、尽量避免使用子查询" class="headerlink" title="3、尽量避免使用子查询"></a>3、尽量避免使用子查询</h4><p>以MySQL为例，以下查询返回月薪大于部门平均月薪的员工信息：</p>
-<figure class="highlight n1ql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> emp_id, emp_name</span><br><span class="line"><span class="keyword">FROM</span> employee <span class="built_in">e</span></span><br><span class="line"><span class="keyword">WHERE</span> salary &gt; (</span><br><span class="line">       <span class="keyword">SELECT</span> <span class="built_in">AVG</span>(salary)</span><br><span class="line">       <span class="keyword">FROM</span> employee</span><br><span class="line">       <span class="keyword">WHERE</span> dept_id = <span class="built_in">e</span>.dept_id</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> emp_id, emp_name</span><br><span class="line"><span class="keyword">FROM</span> employee e</span><br><span class="line"><span class="keyword">WHERE</span> salary &gt; (</span><br><span class="line">       <span class="keyword">SELECT</span> <span class="keyword">AVG</span>(salary)</span><br><span class="line">       <span class="keyword">FROM</span> employee</span><br><span class="line">       <span class="keyword">WHERE</span> dept_id = e.dept_id</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
 
 <p>以下语句将该子查询替换为等价的join语句，实现了子查询的展开（Subquery Unnest）</p>
-<figure class="highlight n1ql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="built_in">e</span>.emp_id, <span class="built_in">e</span>.emp_name</span><br><span class="line"><span class="keyword">FROM</span> employee <span class="built_in">e</span></span><br><span class="line"><span class="keyword">JOIN</span> (<span class="keyword">SELECT</span> dept_id, <span class="built_in">AVG</span>(salary) <span class="keyword">AS</span> dept_average</span><br><span class="line">           <span class="keyword">FROM</span> employee</span><br><span class="line">           <span class="keyword">GROUP</span> <span class="keyword">BY</span> dept_id) t</span><br><span class="line"><span class="keyword">ON</span> <span class="built_in">e</span>.dept_id = t.dept_id</span><br><span class="line"><span class="keyword">WHERE</span> <span class="built_in">e</span>.salary &gt; t.dept_average;</span><br></pre></td></tr></table></figure>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> e.emp_id, e.emp_name</span><br><span class="line"><span class="keyword">FROM</span> employee e</span><br><span class="line"><span class="keyword">JOIN</span> (<span class="keyword">SELECT</span> dept_id, <span class="keyword">AVG</span>(salary) <span class="keyword">AS</span> dept_average</span><br><span class="line">           <span class="keyword">FROM</span> employee</span><br><span class="line">           <span class="keyword">GROUP</span> <span class="keyword">BY</span> dept_id) t</span><br><span class="line"><span class="keyword">ON</span> e.dept_id = t.dept_id</span><br><span class="line"><span class="keyword">WHERE</span> e.salary &gt; t.dept_average;</span><br></pre></td></tr></table></figure>
 
 <p>改写之后的查询利用了物化（Materialization）技术，将子查询的结果生成一个内存临时表；然后与employee表进行连接。通过实际执行时间可以看出这种方式更快。</p>
 <h2 id="4、不要使用offset实现分页"><a href="#4、不要使用offset实现分页" class="headerlink" title="4、不要使用offset实现分页"></a>4、不要使用offset实现分页</h2><p>分页查询的原理就是先跳过指定的行数，再返回Top-N记录。</p>
@@ -504,7 +504,7 @@
         
           <a href="/archives">
         
-          <span class="site-state-item-count">246</span>
+          <span class="site-state-item-count">249</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
