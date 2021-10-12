@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="Pytorch中模型的保存有两种方法，第一种是只保存参数，第二种保存整个模型(结构+参数)。由于保存整个模型将耗费大量的存储，故官方推荐只保存参数，然后在建好模型的基础上加载参数即可。">
+<meta name="keywords" content="数据科学家,数据科学,数据分析,数据挖掘,机器学习,深度学习,字节猫,比特猫,数据猫,数据与模型,ByteCat">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深度学习开发框架PyTorch（9）-- 模型保存和复用">
+<meta property="og:url" content="https://smallchao.github.io/a/11.1深度学习开发框架PyTorch（9）--模型保存和复用/index.html">
+<meta property="og:site_name" content="ByteCat">
+<meta property="og:description" content="Pytorch中模型的保存有两种方法，第一种是只保存参数，第二种保存整个模型(结构+参数)。由于保存整个模型将耗费大量的存储，故官方推荐只保存参数，然后在建好模型的基础上加载参数即可。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2021-10-12T09:35:02.917Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="深度学习开发框架PyTorch（9）-- 模型保存和复用">
+<meta name="twitter:description" content="Pytorch中模型的保存有两种方法，第一种是只保存参数，第二种保存整个模型(结构+参数)。由于保存整个模型将耗费大量的存储，故官方推荐只保存参数，然后在建好模型的基础上加载参数即可。">
+  <link rel="canonical" href="https://smallchao.github.io/a/11.1深度学习开发框架PyTorch（9）--模型保存和复用/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>深度学习开发框架PyTorch（9）-- 模型保存和复用 | ByteCat</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">ByteCat</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">数据科学家之路</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0A" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-算法设计">
+      
+    
+
+    <a href="/categories/0X" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>算法设计</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-科学计算">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>科学计算</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-概率论与数理统计">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>概率论与数理统计</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-微分方程建模">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>微分方程建模</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数值模拟">
+      
+    
+
+    <a href="/categories/7" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数值模拟</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-优化理论">
+      
+    
+
+    <a href="/categories/8" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>优化理论</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/9" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-深度学习框架">
+      
+    
+
+    <a href="/categories/a" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>深度学习框架</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-计算机视觉">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>计算机视觉</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-图论与复杂网络">
+      
+    
+
+    <a href="/categories/c" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>图论与复杂网络</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-空间计算">
+      
+    
+
+    <a href="/categories/d" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>空间计算</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-信息安全技术">
+      
+    
+
+    <a href="/categories/e" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>信息安全技术</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-推荐算法">
+      
+    
+
+    <a href="/categories/f" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>推荐算法</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-文本和语音">
+      
+    
+
+    <a href="/categories/g" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>文本和语音</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-生成对抗网络">
+      
+    
+
+    <a href="/categories/h" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>生成对抗网络</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-半监督学习">
+      
+    
+
+    <a href="/categories/k" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>半监督学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-强化学习">
+      
+    
+
+    <a href="/categories/l" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>强化学习</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/a/11.1深度学习开发框架PyTorch（9）--模型保存和复用/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ByteCat">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">深度学习开发框架PyTorch（9）-- 模型保存和复用
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-10-12 17:35:02" itemprop="dateModified" datetime="2021-10-12T17:35:02+08:00">2021-10-12</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">Pytorch中模型的保存有两种方法，第一种是只保存参数，第二种保存整个模型(结构+参数)。由于保存整个模型将耗费大量的存储，故官方推荐只保存参数，然后在建好模型的基础上加载参数即可。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="抱歉，密码错误，请再试试。" data-whm="抱歉，这个文章不能被纠正，不过您还是能看看解密后的内容。">
+  <script id="hbeData" type="hbeData" data-hmacdigest="5ef10afc0a9abbf2a8e46a01f410c26401b7d9ae8027f9569b38849ac5bd0fbb">3ece6c3a5533aea0d4373d783421738d7d4eff58faa063ebe3197382ab89ffe7a9ab01f86931312507a63379f4c876537890718ed0679d4776c265ebdf9494e2f4786c1910594f3335d65597e56295297b21b923d05de1147f44613c6a6397739cd518bdd6d435374845dc2beaee3e86249b892b1c72baf28bad7ad0771b61a1eb089856ceced226c59a22123ee9ab334442b7cf877e506506fda14242b69bbcaae3adb4c2103a763c911b581865c86ac6c3f67e83b78aaa4dc3a5578102328258967f71cd551b30650fe4f2c6fa1b264693faf5d1bcae90d401ba225ae0ff3f94e5ab4f664b13c1699d73374a84641451b1e4070ceffc54f28b31fda0a5276b12a6d969079573ba6ec64e7ce3d1e8428b4423eda96eb00f514f3564da08f6e2239ec079e788d8b359597f0180ae03e4bda5cc71d68d040ac552cd40489bd0e096457a8eccdb69e77346122deda624d4c855b294a4902d389f47d62252a3462d121d93d5dad9aabdb709bf923f1b54576d8289b79a7f5929a5e2cdc3f832962019de513e1c714655a3deeff273222419927f5bfaf2c11412315134fe0723571806da22d40587157fdea1a4e1d266c7456157fa936c27589e12e6ad1ad58637679e9cb75cd6bc4f55b29c7f529ef7af1e5c59e1d7ca8363c85b58e70a1eec315e17a32d0b0194ac81e726ab4d5bf95756bcae99f22f32ebee55644a984624dbaf21a6ada52dd4cf6f911b6dc64bfd2fb5560a6f969bdfa0d17820a6cef0b8d3ff5260e367595a234ddb5769562e787db4fd69816f056d6ad2be9414b9901e424bb17b80312cd4d7ed866fd5f2b78ed9bd6e6ef690e48ce3bbb0474e3223f9eff01ebf5703153248296e66858088a1726443007925b642c462106dd9b02ab1bdc8f84019be0b4a9879b6f6b5aeb68d7d10b1175d2b2b3f464805ad902f72ca698cd498f40fcb93ccc62f3fa64a5ce29285f4eb6197cd2fd139c4e2d6ae8653136be4c7ea6cdb20b1aaa49d1728e8948da4ea5b4f48916a3ece852ed223875b6a2417f77cd262b3ca72542695469e23f57af4e95b349b5c67d6d601137ae8809cbc7c0ca14a2c8a0892a8735449da5b07f6b3078680cf472d0c01eb6990232777db016eff7f1206109ca4616b593207f5fb982afc8cd5690b948334fbec48ed0374abd7cc2cef1e4c3178eee4145b011e10dd0803d4cfb8cb69779046bd758386f18f4d9cd9c85247fe543f8a37955d105b59d4db9604b7cbc59b2400e4869ce6514075931d5d5052e5b4548872d46ef1ebf251560e6faf2f93cdebef0d6e0c375aa26137a1f1ced23012b5f8a3dd9dbda7860a41ff40013cd60964ebbb147f507bf32b5053988e36784f4322c4cb2d2d08f2b955763a7a127295757611d01dea7db6b3be9fc04618051bd7184ef61b225d264d7d6a5f98515d6b1c82abb327157ed8441b98238a63c9aef0b2fc75914df69a6fe8a58685c802bb32bb00514e0d1b4bfcbcb7f0dba32a64e5cd71e27c5aac111f59e6645ec7312daeeda4202e7d025a0df4b9d20a9421d24c1cfe1a7266f2ad0a56ad1121c978e41570b2cf417cf4e14893f8350e1bf4dc64b2d2cab71b3a2bd36f80f965ae0701e7c4d3b550e0c027d607950ab091ec4cf2d09cb48cb7ceea05fda0ba893540ccec2dae4ee722b0ed12a8694d5f2ff677c7592f14daf3144390536be6c49b8ed3dd1f487f39aee7936e0da5a004c585e60b0ebc03058f1e886aa2a86b0ced6d31096672affde0edad7da9009ad47ab69d86bfef63aa37bb67685342e8516fc0a6696d247d14fceeb4a288a163f8ea1873a602acb695df0c2225b70fc7d8c9f1c670e0152801e1d0b45670118d2f46fcff90582d338850e86bbd8e0b8658ca224617082902dbdd8265fd09ab86b165731266c0616e61bc8b0d6572cb33a21b7f585131262051647f6ba78c38a9fc6523d01818171a2ac2b52d02dbbe2a6890c8fd500b1d2d9c0102abc718543d9a6a3212e6d02934da21beb6e04abdf6a541a69bf1d2a3527941d7e1a826fa23761a3a6898e4d1a59540eba1aefe0c95752bf3b9c0bee34799946df650e3a52af258316f0d27201d4232252af0d9114364d7cc229fd1527ac9856e7527ccfa5cfab7080fac156aebca2fcf954325ccc44da88246ae73105e3ed648e9c79be5fe59d6981de03734ed485502be74aca74de24cbabbf5b04f6e5e0e2c085000d98b015c8e26275bf5ce183757b604d16ac44c9325bbb1bda8d97111055b28520b2258ee421423498d0f5d88e28d27c5dd79e00ca2d9039945d40a19ad97cdf325d93c86dcc8b0bf60fb1cebcaf2e6cef1135a58000aece411495b1878a1ebe2441453a039cbcde25a69c7a5ae03cf2c4116c9f75691e55a3e1c3eac608bd36fbcf9db3bc207f7fdfd8acdf66eee1a7162fe73a4674a77f1a7d4b2efc92689c41da55c2c55e987ec236254d9807e75582242a70f3ca0a729f996092f383bacfcfd5557ff5c3475f948c532ba52b914f947aa867a829b38975202b956cc4cc3d38a4544d76c0d5a953d9dfce2efd28d9e028751a4f6b2fe2e76ceb749638218533a3ca0d0d1bfd5c4bbadcc8a1207fba85944a11d85c70fba398019f5aea81df42aaf46d370499c324774da841ae4fa4499f4eeffcf8b7cc3e5c4a04633414fff498a02656848d5203d1fb86e8b9116a130b9f3c1859465fc97d2ed16e4e353e6add17abad66c5f725e828e2b08fef69fe5397abf6d7d1b27c55533411908fdc553a2efbcdf1032a994716e53fcd9f371d6065fe677d071810385b798d04256957bf67d3c69fe9b1171a015cfb169448255a063455bda2c71cb559c63197bf02cfc0208dfbb69c94d3db42e315e2c19d95aa2c20e71168ac930ee09dda7a74dc497a8f34d542e70d8e3ab1ee56751e38914ddfa2b91a230bbf9d4dc325ab66a6994e96c95d0478369cff99a94115e43aa4f77a56d64d3d6281bc91604142aa1a137993c445e23bdb68db7b0285a736a35953e0506500dd0207d78fa033f2663fb85301d2fd4762e0d8e8da15dde061363304870004e08a8f919bf181acb2c8b03d4fc2991d7fff16da61a64814dad07f344c20279846a131feba301a24a834acb30bd1716e623cbb57a43b6e65593535dbcf509478cf56fdef93d29ee08e285e3dc3ce2ca873b5d5cb4f6e6c379fa75cc0d2c51bd8c877b86d1e6d8603eb09cfb868bd4347fba68f69d8879bb55299cabad67732f3c53374b45f4d398b95da980aec2467cf7fef8c67856fba5bad1b7e5f7a8fde2ce9a786ed871319fed6b86752833d13e2cfbad391cb483566221f689d1c4b54985690f88f0a05b8754d6af38fbf588957180eb42f5c0e584251e23d5ba34cc6cc52d9d26f85ec2bf1b3277b7a043a014ca2126890a9f0900f702f793cce21e85140e877aeee681d737748735cf4bcbb906a75d70a73cc0730f93f3299f69cf80656c46ad7754e4d849534a8cf15436b8e30be7ed4b9c075c8ba6fc617cd476cc7cded623c7fceadbb9d537c0d02c24f7fcacc05ef3118f9b9a4194ee59ace10a89cc0768d90982dce8c7a9493d6150b1d667faf34c83d5d5e1b3fc8be9b2c4af75eb9ee02eb03e4bd48599d6a0d3ae50e2313626334577d662b4317be5c6d13c356cebde663c07d59a5d9678ea3dee334bc3e52ec6a4cb9c6cc092f0d4d9830b5ee556a04529ec74681b169a005a606568ceee11782a03bc8c8bcd56013758ac3c4acca7500b3650a430995cffd51f8f0306bb995e512ad55a23819a5d22c30e4a99748f4afb9e110bb6d0986fe848c85dddc202b5216a98410e6989de01baec0406ee0c3f8c5b6aa2b171b760982b09e7c959e2077daca8c5cfcb18234b2d2ce2053eb5eac4305d9c79f39023e5d0e5c74aa8b58ba74a548c17ed4b84ccecc027706ed2d9f02d098cc8a8496ad2f856fe8db26f4a667ccccfc55eb31b1af05a1959fe9c30c6c087f60e814529e629ba28f1cc03e85c373697cb165e82204a4711fb311f902b9830cf8710f0237cb7c5ad0dfe0ba464bd197d602b3c413c1359c18840711fad67738d524a3bc0120f3fccc07fe9f14d0e92e9315eb286873a412cc354f10f389995f1b5fd0afc6b311750361d29abcff69d2fad9a1486b61430b486a1571f350d1269443743953b7128d707e3f81e2ea91ff948e7c17b47bd385b1b46f01a2298d5a72f977bbe21353a6de552ac697e395f07c4b5dfd1ffc6bdccced8c9ebd71c9646522109be5e12c16a265780d91f7709385977c36e8f14fa275239c9347f086ebfd2895fe45c11f07175532740bf751f9ccee4129dbfee50f0e9c684e58400cdd90c3726ef46d5587f47bb84decb00105f982eac70f1fc6870c1ea9f82f1a8700539a5a8c600cf270f75fb98544aa406056bab6d8a86530c2f3261495443e4a839e5e1f65403c85885ce741778f0ae1a8cdbfb2d8bebb2469474c33ed4d4102c593008496349e26d7b46b6ee0dae4815d39d9fb79342ac0b4d4f979acfed393713112b18709dbc63de41259105fc66644fc2f3c71d5d71675c26459c9d1781a0eb46f35b171196e3ee9577cb31d6b6d2ab0fa7f9a5e396b3b68694f5ca4cc537ce3a5f99b68b2f618a3da2808708558526a72f312fb706307ab8ec1dbca5bb52eb62f15216fbce6b2920aa7857cc56775fe80fa48edc9c51820566c8182bcd189fffe0c60acfd43d4527e3a095ade38f07e0f6ca9b3054f48226d301a845e1cd2e019ee107599fc25e714978d9295dffd908a2a87a3e405f07301d85f51fe8bd9f20fd277ee8c6644f2aa300dea1c92f2c96b51b1437e8c0d33babbaffd837e4f476d458bb545b030ced67559e5e10cd16c34039065f03730fdfbe44d5d288b9f57897f6fe223bf6ecff4bab2651632f87c1d8b0ceaab26369cdc5e623516f7c48d5ccbd05492b04c46b3929ae75cb628d392e9e6f4b75f87315288f9e9701f8a11fb39b01d6730fbdbf3d34da720e85ab4851efc89aaaf3032d45c4088045f17937a62b76845e4cd0235dbc549983a5134c5725539a1613bcb12aca7eb35a9bd95d296b59fdbe60722308c387c28857698be4b9eca72b07dc10cebb9e3b620f0be3abc74becdd70c5a050e71834105a68322fe0452add53d865241694a4bb354aac4bd52d166d2b5b8385f2af90123aa3407e417b651a96e5981ce35a0a39f2809b917c75c41df444fd8a6a3e0234845a2f7c2df1b8dd68a4c8b26d98c4a4b4e7adcb46b5fdca23d60beb5f3bb9d11d3d3f2ce852fa6987f9697118837365a119</script>
+  <div class="hbe hbe-content">
+    <div class="hbe hbe-input hbe-input-default">
+      <input class="hbe hbe-input-field hbe-input-field-default" type="password" id="hbePass">
+      <label class="hbe hbe-input-label hbe-input-label-default" for="hbePass">
+        <span class="hbe hbe-input-label-content hbe-input-label-content-default">您好，请输入密码。</span>
+      </label>
+    </div>
+  </div>
+</div>
+<script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/a/10深度学习开发框架PyTorch（8）--GPU的使用/" rel="next" title="深度学习开发框架PyTorch（8）-- GPU的使用">
+                  <i class="fa fa-chevron-left"></i> 深度学习开发框架PyTorch（8）-- GPU的使用
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/a/11.2深度学习开发框架PyTorch（10）--追加训练/" rel="prev" title="深度学习开发框架PyTorch（10）-- 追加训练">
+                  深度学习开发框架PyTorch（10）-- 追加训练 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">581</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">21</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu </span>| <a href="https://beian.miit.gov.cn/" target="_blank">京ICP备20018740号-1</a>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>
