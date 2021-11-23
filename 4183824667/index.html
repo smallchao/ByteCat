@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="图嵌入算法发展到神经网络时代，涌现出一大批优质的图神经网络模型。基于神经网络的图嵌入算法不再仅仅局限于节点的邻接信息，而开始将节点本身的特征纳入模型考量，并逐渐从静态的直推式学习向动态的归纳式学习演变，无论是拟合能力还是泛化能力，都大大提升。">
+<meta name="keywords" content="数据科学,数据分析,数据挖掘,机器学习,深度学习,字节猫,比特猫,数据猫,数据与模型,ByteCat">
+<meta property="og:type" content="article">
+<meta property="og:title" content="图神经网络初探">
+<meta property="og:url" content="https://smallchao.github.io/4183824667/index.html">
+<meta property="og:site_name" content="ByteCat">
+<meta property="og:description" content="图嵌入算法发展到神经网络时代，涌现出一大批优质的图神经网络模型。基于神经网络的图嵌入算法不再仅仅局限于节点的邻接信息，而开始将节点本身的特征纳入模型考量，并逐渐从静态的直推式学习向动态的归纳式学习演变，无论是拟合能力还是泛化能力，都大大提升。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2021-04-05T06:32:20.142Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="图神经网络初探">
+<meta name="twitter:description" content="图嵌入算法发展到神经网络时代，涌现出一大批优质的图神经网络模型。基于神经网络的图嵌入算法不再仅仅局限于节点的邻接信息，而开始将节点本身的特征纳入模型考量，并逐渐从静态的直推式学习向动态的归纳式学习演变，无论是拟合能力还是泛化能力，都大大提升。">
+  <link rel="canonical" href="https://smallchao.github.io/4183824667/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>图神经网络初探 | ByteCat</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">ByteCat</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">探索数据的世界</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0A" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-算法设计">
+      
+    
+
+    <a href="/categories/0X" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>算法设计</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-科学计算">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>科学计算</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-概率论与数理统计">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>概率论与数理统计</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-微分方程建模">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>微分方程建模</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数值模拟">
+      
+    
+
+    <a href="/categories/7" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数值模拟</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-优化理论">
+      
+    
+
+    <a href="/categories/8" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>优化理论</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/9" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-深度学习框架">
+      
+    
+
+    <a href="/categories/a" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>深度学习框架</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-计算机视觉">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>计算机视觉</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-图论与复杂网络">
+      
+    
+
+    <a href="/categories/c" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>图论与复杂网络</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-空间计算">
+      
+    
+
+    <a href="/categories/d" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>空间计算</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-信息安全技术">
+      
+    
+
+    <a href="/categories/e" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>信息安全技术</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-推荐算法">
+      
+    
+
+    <a href="/categories/f" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>推荐算法</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-文本和语音">
+      
+    
+
+    <a href="/categories/g" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>文本和语音</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-生成对抗网络">
+      
+    
+
+    <a href="/categories/h" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>生成对抗网络</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-时间序列">
+      
+    
+
+    <a href="/categories/i" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>时间序列</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-半监督学习">
+      
+    
+
+    <a href="/categories/k" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>半监督学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-强化学习">
+      
+    
+
+    <a href="/categories/l" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>强化学习</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/4183824667/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ByteCat">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">图神经网络初探
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-05 14:32:20" itemprop="dateModified" datetime="2021-04-05T14:32:20+08:00">2021-04-05</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">图嵌入算法发展到神经网络时代，涌现出一大批优质的图神经网络模型。基于神经网络的图嵌入算法不再仅仅局限于节点的邻接信息，而开始将节点本身的特征纳入模型考量，并逐渐从静态的直推式学习向动态的归纳式学习演变，无论是拟合能力还是泛化能力，都大大提升。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="抱歉，密码错误，请再试试。" data-whm="抱歉，这个文章不能被纠正，不过您还是能看看解密后的内容。">
+  <script id="hbeData" type="hbeData" data-hmacdigest="df0857f7af70ea5a0d634c8e079e6a1964aa50dcde4e9b4e11c632beafaec949">3ece6c3a5533aea0d4373d783421738dc1e287aba031660c7b96680bca2da22cb2dbf6b6e67ce3c73740d7aa67726c1ef56cc99163a2176c53f84d169c62b132cab6766adf55607f5c7d6a7816936e7d882b3d2fe650c47466a6ba6034d455fc82d990230cb6bf5e160e52a9bf82a10828e3e2287678eaee73e8f14d96ae9eb7f8263af605e6eba2448b504f9cd2910da54b4d72d4d0ee85fd9a4a7194acf43ae724d456734b7dd2bdeae1b501764f2e76c81478bbdf2377c02f845b5bf2ae23ab18e4c8382910da89dab550a34b11e8eccfa55bd6a1f0ff91493937c16a8d0bd59bc47794462a9025964d461bad0af0819f5c18e8d2ca8c8a27f8c03bb4a6dbe2904ce088931321458560e32fd2233100f5036f9678a30495cb7e6a90566238d2662c011a27679f4f5699121a931df0a819d85580a04ce0134b9121f1f84887c422aed1a5838f63d172ee0d23c87029b0d8546edcfdb32e3d082c347bdc1e57b43b3787f0831ddf49f012107f4222c680ba794148dabb1233642574ad0b05ac3653430ecedc40d1aae57c14500f7cf0e9d032108145221afe4da06facbe7ae0227513c0f15c074c7c9fe7a96c51e73023faa1556bc8bb10893f276c77f34faebc244a04d893544e93ad36b8c8899622168ff2d9060368e943779dc9ace1acf9cea95740a175cfdcf52c4e5d620e62faced56c33f5d99e8cd1cbc3ac07facdd87c725e0c4a5826a6ebf6c73a7beeaf5fca5b1e04482c9983bfa3eb52b6c6a0359bd2de32140c529fd96a5252dd19daeeff0915a6f170c3c7633e01b3519f7a338f9f2d890783f1b3542a04e448e8dad7684a24808b6f337f5219be6c9f89630b891244b481300ef425fef2164385e8e9014caf0ef50e7c7a6fb968a364e95954012050b29ab36105a8aaf096cb735ccc9ff67273fefb7370ddbd21cece859a5a323d3da24a16b3af27c7d1b30316eb2f1e94bc9d7c1620b2e3d37e4d56aa41914524a35709eb483457bd819471af301602ca9e86d2a4bc54d903da0e2ec79a7a3f72e80e0dcadb899032b65f4034d5fd84f06ea024aaf7a4b7f44e903f01cc76ba676f2d958b2a9c4183de92bd355f3484b8b4af2f6eb1b46680fe25450d1f0c38a900f9f3f15b5ba1979d0657fd83b915b6dc3141c9a63c5da66f6357b2dcd6274e2a4467173fa62539d6e97b5e508a2cf1a7ba180762085f5c54fe4b867ec77bab6834d506c148aeb2ea8e64ddc1271216f8de71b5b775b3da28cbd0c3d1902adb3cb71905e492b837e1f04adfcb88b90bcd784b1e45825cf4d9e953669ab84c3ea449de3999feedc512a0684861c36796dad274f46137694abdbf9ee94d347b1c4dc09e1d69afefd0ebcb35b5730cae2c8595401918d942442f3f8725a26d750422774cc9626b417fded75613a594d4c8097d59d1df5bf075c9a3b6976875487930a95e4d1f1c0196e3071fddf8a52e4d6c31f41f77615416b0bee107e7021728de14ab4f1da7e4d4f4a3ac9b6c2b680f458f43a3076ff8db85ff911d0a2f971a572c2b4c33a6427c93491732c6a8196c11e8a67d0beb70d0a036f3d938a39e41986b4bf5ac8725267335373a983aed7cedf8c843e1e545d54589bdc6b1a7652daf8167f3b7199e4a723355a3112a9beac9a6f827c971daf18d5daee4c1a61986aca8dd718da89c8b4d7bdfebbc1eba55bb187e2a4dd338f338cd936b5f8af91d9f609c20527025f9def53188c0a53cb3039e1d28123564c5e5845571ffc65159d6d77ab4759ba77e279173a1cb76d7f05f000b368122558045842b95b4d1684cc637950b65aac4cc915fe10aaa7d8465ebf982f198163c3d798c0311393c4ff2cd35b5e479307c8bdfe1466e18da2ab4f6236258e9ff5a85927a9a5bb52801dc59150fae4e31e2d07708966e6590e5802ed852d7ef414f2d1494d3be6b4bfb6ad67b8c0ad1a4c29a24afa289b8e5d17b872bb2089a7ef205c90b60eeed39cbc36b388e752c8da43ad6735bbe421110ecfdea2bc96f6719ba0d7239146433057072971a14b244966bf2f2f29ee99d92338cc5deff5058c710116989767edcb0a4c8e0621acfcf18ea3079e9d44e94cd967fe22368de5968512f0a8cbda4b5ad5eac7c1203298af884033a45bbc09db6f68ea303d57fd3686c69db33b506fb0ea4fdca695d90a56e0b1809ae3b5c9210635089e16a7320b38df9caf65ff155ac681c50777854eae7792e744bac395d35359de5219c04429d70d66141ad3d17c7d43cd941254989809116305aba4213c3adaf2681a29232650bfc4eaee665765cec3c2f67a3f2d808262bddbd2df069416c52ee4000aefac9abc20f49f5bdb23ad670129d58378d391f11bedd0e662eb342f65e12543c4f976b04bb152a405fb1ff61e701fb3a81aea7901a5fe75bedfa86303fc402cad9d833c236ecd87de6b25ab1def110017da3e16d56cf35f582855ad5180a00e224fb0eb82cae55941fbed240bb4fea19222e402a8c14c64c4bff87f5c02aa6e802eb0c1f559a1e1ada6fe403073e261032573195f0b654bb48b229e1a92a7584c3f6357eb0d42061d891515f1e7ad273a50ac9f3b7690b8069e88229fafab9dcb986a85967e5c737b434dc739047511caf7b2099c8fe990fe4e3441e3968838e47c9e703aa62d13443769b1469c282885c30a626fee2af0306cf6d90f8c2c6c27eaffc838ac205f1fb85d8df5b51dd3f6944837b174e8a1d242dafd071a8e4257681e718027c9ba03526c6512d753fb7279f33a14f35e93cf8bb87299cf7010747b4e213a2d1cb1925a44676d588f7440b8486edd4a3bf1e7427809897ae35ebd224bd19af72484a2eef737ecc73be0f20eff244dcea9d7e09ae0914ae1088420c573c4d1c40f3a3c0b2d2269c83afe8333757b2b64a62ca7a57ec658cede9f15109b6b0992b9c982e524548ce13f2546005072bf388434f1ad7f1f7ba00eb742c8d3021b1c0c0582f</script>
+  <div class="hbe hbe-content">
+    <div class="hbe hbe-input hbe-input-default">
+      <input class="hbe hbe-input-field hbe-input-field-default" type="password" id="hbePass">
+      <label class="hbe hbe-input-label hbe-input-label-default" for="hbePass">
+        <span class="hbe hbe-input-label-content hbe-input-label-content-default">您好，请输入密码。</span>
+      </label>
+    </div>
+  </div>
+</div>
+<script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2573480427/" rel="next" title="图嵌入简介">
+                  <i class="fa fa-chevron-left"></i> 图嵌入简介
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/36933173/" rel="prev" title="基于GCN的半监督分类">
+                  基于GCN的半监督分类 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">655</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">22</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu </span>| <a href="https://beian.miit.gov.cn/" target="_blank">京ICP备20018740号-1</a>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>

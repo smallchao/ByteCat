@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="对于许多实际问题来说，若决策变量代表产品的件数、箱数、人员的个数等整数量时，变量只有取整数才有意义，因此有必要在规划模型中增加这些决策变量为整数的限制，称这类含有整数决策变量的规划问题为整数规划。">
+<meta name="keywords" content="数据科学,数据分析,数据挖掘,机器学习,深度学习,字节猫,比特猫,数据猫,数据与模型,ByteCat">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【公式求解】线性规划之整数规划（1）">
+<meta property="og:url" content="https://smallchao.github.io/77818208/index.html">
+<meta property="og:site_name" content="ByteCat">
+<meta property="og:description" content="对于许多实际问题来说，若决策变量代表产品的件数、箱数、人员的个数等整数量时，变量只有取整数才有意义，因此有必要在规划模型中增加这些决策变量为整数的限制，称这类含有整数决策变量的规划问题为整数规划。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2021-04-28T08:59:11.981Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="【公式求解】线性规划之整数规划（1）">
+<meta name="twitter:description" content="对于许多实际问题来说，若决策变量代表产品的件数、箱数、人员的个数等整数量时，变量只有取整数才有意义，因此有必要在规划模型中增加这些决策变量为整数的限制，称这类含有整数决策变量的规划问题为整数规划。">
+  <link rel="canonical" href="https://smallchao.github.io/77818208/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>【公式求解】线性规划之整数规划（1） | ByteCat</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">ByteCat</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">探索数据的世界</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0A" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-算法设计">
+      
+    
+
+    <a href="/categories/0X" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>算法设计</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-科学计算">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>科学计算</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-概率论与数理统计">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>概率论与数理统计</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-微分方程建模">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>微分方程建模</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数值模拟">
+      
+    
+
+    <a href="/categories/7" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数值模拟</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-优化理论">
+      
+    
+
+    <a href="/categories/8" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>优化理论</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/9" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-深度学习框架">
+      
+    
+
+    <a href="/categories/a" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>深度学习框架</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-计算机视觉">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>计算机视觉</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-图论与复杂网络">
+      
+    
+
+    <a href="/categories/c" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>图论与复杂网络</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-空间计算">
+      
+    
+
+    <a href="/categories/d" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>空间计算</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-信息安全技术">
+      
+    
+
+    <a href="/categories/e" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>信息安全技术</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-推荐算法">
+      
+    
+
+    <a href="/categories/f" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>推荐算法</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-文本和语音">
+      
+    
+
+    <a href="/categories/g" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>文本和语音</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-生成对抗网络">
+      
+    
+
+    <a href="/categories/h" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>生成对抗网络</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-时间序列">
+      
+    
+
+    <a href="/categories/i" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>时间序列</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-半监督学习">
+      
+    
+
+    <a href="/categories/k" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>半监督学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-强化学习">
+      
+    
+
+    <a href="/categories/l" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>强化学习</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/77818208/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ByteCat">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">【公式求解】线性规划之整数规划（1）
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-28 16:59:11" itemprop="dateModified" datetime="2021-04-28T16:59:11+08:00">2021-04-28</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">对于许多实际问题来说，若决策变量代表产品的件数、箱数、人员的个数等整数量时，变量只有取整数才有意义，因此有必要在规划模型中增加这些决策变量为整数的限制，称这类含有整数决策变量的规划问题为整数规划。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="抱歉，密码错误，请再试试。" data-whm="抱歉，这个文章不能被纠正，不过您还是能看看解密后的内容。">
+  <script id="hbeData" type="hbeData" data-hmacdigest="b83cb94afd2aedc9f64365e5cbcde445d3cbc9d0962387ee184f53783f50ab05">3ece6c3a5533aea0d4373d783421738de65922a966b8e00fa653793159a66062f0c5c8edb360ca68c9c6167b47c3c255e6a3debf4d7e0a994d936d8c76f6d7358c4147fc0123c186eccda25490030b086e05383c25ef61f7fec99406db8c1688efce1c66dea8849ee95379869468f831ede7e89e347c8e1fb937abd49af1b7f1991affc6791c519e47ad663af2ad0dac9484ba657195c4228b58a6eef906d6a4d1c4f165964344777bd00fde99c7a81a7ac66d38cf798c8fd1e31538cdc3b6e6dbe68240732bc23e4ffc9d5ce04d33a3314f090a0dace6827932c29c894a9522623f37a1a8f21d724f77e1edf66b14a59018b3023042e3d12c9afd0e66e0dd2b800bdb049032a088c4f2c4389178f75a0b0ba07da55a2a78d9c1abf87d1d77b5b2b62c09f85ee323a9547edddd3e89970391f221175f64a52396f05b46a80ac1516d8bd534ccc8144b785a052c5341f7f8a5309bd3d8343ccb2af28ae06e57d95ccf70ed30b6b9ddce1bcf2430bb57ef995bb69f7cf3f529f57ba50628e2a6ac109fff89b30a18a3150caf20c1aa20f7a2dde72f5a46c732f0026f0b26cc4fe7a2a266554086031ab387797b9a73bfd26a074143c10d38937d6c98ff6b47542439962963984709cc97d4735aaedfbf74101146600b6a58a07dff38ed8cf73773b093380f203df7a129577589ed335412990e32456568c520130837b5ca292ac86437fb4b5cfa11dba7aeaccf2272b6c085607cc22f84ea72bf89edb1edf29fa01878c5290c60628f496b0a7af49ccb252a32ef552594afa1e3602ada9686625735e7a57c192737b080207beee8fa9f071dd53f96fb677842da3dcd0167c1e5aa353eb6faa38a1a23707e8dcf9bad82061e7ecf517bb492df2ef050f9b70951bbdde472ea1c444af7cb1fd6461b2f1e48e20938846e0c1769c2d1cba6b8096010cffe52d71ec289e5e10f52a27675aa41f866f160fa3f08a306b1690907b2266ef2749db257725bb05ed84f16ea8fe665f8370ca2964afe03d409de20f08e4c92e01c9385129e3e3d0164335f7d8c48df10356f9c479562447f8aa3e5cf6f393d2bde0e78702cd68b78f1048a4736f0a8eabe36342c503c07a23a7cff8a4a6267609fa0e27a9d0e651af5320b17e691108e2c241471a25d07fd4b71c1ac69430c5d0b0f5284648e2b92d10c207eb99e165d3b862ae6bb61f36b8449bda6bf544c8885bdafd8554cbbfd1d40504a13cd0750bd8f65ee6a3c25a9c4fe46386f248fd5e73901383a4682867a7a036c25f37a1ee9b7c6eac9c18683294e2ce694b0d40751c621055cc3325ccdc99bc34f265658bf723e50557b561ebf0b758b305f348687a1b791fc170ff062820bc9883a7dfeb6c45d035f5e1a83bb622c1f82a958322fbc8fae1c1699bb31edeccd8ca1fb4655f1fd92aef3c91896f3eef26fc6c3cbb69021405823e701445274f7be8c28dadd7f5c9139f2226a8bbec68581b1dd904e602d274dc1c22a5a9e939684181deb2e860e77beb5f78422d6e6954aac6fb8e072a56d2775afcf5ef0bd1e809c9324babae49cb99c901793b91b630a7ec0d5cfd287abe7d846e7f7cefcc609d7880da9b2d35fc081706548e5c8c646957777239149a9f8154d59caf58a609fd4d3a1bc823b0db291db6fe6afb48f855cb5c2097fe83130069c265428ca3b847e2e0c941c2824ac25722f34fa7b6b8ab2ae5f70b3f02aa1f9e998196b866c546159392130b991b17e667783ff2543d60eaec03d629a9f2616e110117700ad68c628159c59f6d12b21f38564edbf1fd8bb152257c867979a5fc97fa5f997e963669fce8a4aaeb7acb97d51f771a429dd49fd1467eb849563f6943fbc51014c43b911d25e72edc2fc9f31ef71f1309a053630e0aca03f2d3ed2186c6bd08c7f798367e08ed2054ae3d79896e7d8f296c973dec0e088ebfe1d2562b3f6fdca5d79c1f465fe7e9029e0d09effd19b07ab2480db0403b942412c4a4e18f2ef66f17e9948f74d983edf56782a338aa625b1eca4ab3a375414ca6249dc796b45ad8fe958ca2b9a459840fbed55dcb9517c208e0d54e870480abe9c03291431ffd2c033e3a0988bc372c2652cf88bfe0fd287af11eb6f510bc2b065ce084ab3e01768e446a8ea3d5939f74c90fb3864c66526bd642b513103fb6ed3d742ad1260bb3842e9087f94f1b8db81b905c4677abbc99743d61841da7fa2c16a0c987d678d0cdaabf5c4d39bb0fe9cd0c965839d17f67e54f824c0e541d9d446dc08e6193316cbeb81556e4b0f0b25e1830b51a963dd7cf6282f3821e02a9d6e73de085d2d0e0987b050188334f8e096e7ac35fff3c28411607cb8daee3ea93238348e50913ceef33a90e9cade65f8e83c9db783a8fd52e9b60848d30b4a9a00ebd2c6e7c664acc86a3a40c83e5ff652c83e69a711bff4ef0ce06f4fb4dfa292ddef2e5f774fc091e27f50f5bdc173cc51c0cc7acc563107ee172b83857d018909a2e21e8aa8efb1d33617f8ffb8fccd8cd4e98d40277f03e421bc8d92f1f89d54324b8828ae1833eeafe62d88b28b8491fb61c3369e4334d9e4f07074e151ec4a7d4297a43c2e49b971c94b854257348801c6aa89801260e4e11e4eddfe6c3fa7db427897cc7ae0dcac33b54e74927f79d0948afc4071a783608a982e6b1c4e7147e9e3c971374b660451fbcd05d4f7e10d33247c9eb1eb8b7e38c74d004d33ef7e8e8b3921e4d670c5e8fea089b1e62dc5dae39863ec2c1a7eede7309fb77371e6df076530abc77832d0bef80498e739bf44a4c774334be1430081325bc87bf9ca443afd9f0dca4423ea923b404c04fdd01c10335f974c61b5919a7de552d0c9d2052048af44d71616d810c28c5bea771a4a42bef50f7504bc036ab8118eaf5c093ff9b6ce0578a3b185a506651507cbcf1e62bbd9489c3d5c110f449779a0f17dc6bf0c704c20ba8f982d576fbb216d0a93002c11d14b28baa6cfb9aa8742e33186869721e9730934db502a88df564f03000884ba4f17e2cd3ddf45fc98ec020231c0263f88e5f9fca8f853594fdf6cb37c1ca3c006dbe59690b6ef9a29e963257e1676b85748ba5100cf56d5dc3c91b5efbdc5d7f6a3e20304aed336e8d330289ab9f93d3e0bd16a68bbe6ba21552ca3cc36b5f603208de1ffc7a5ca8dab8c0b742a840bd286f04d8085f2d8b953307ee26b408dea647e2f0cbc6d356f6bd811ada36454a5f8d4d086eb31a9216e68ac4b2442d339ef55b111a9b9c649d44ee829b74b7d1701df1c06e4910d0d50b336ca4fa80802cd54b4e512b5e05f14cd26b5c023747bbfb62871de09e7ee542a30cb7d10aca89cfdff7fc3e2392fd2647bfd9243d20a29b5ec9967fb2c31d73e8f5969731ea2062be566ee7784227bcc569c25776d679886bc3d549eb1c9fda027a7a642325633161f73c836daa505c9d1e208a2c4fd510cf828705c18fbd21e68be7c553fa41287fc5d277688fa9f7b7d422ffdadf6d43269f897369cee4629ec021acec78e9e729a092d1be4c0ba72d4334f813426b60abc7d9b1bf1eae779400cdb7cd4c47e1a93af934f0c93951b1686dd4c534f7fd0c613396d13f88eb90981cac623df7a13285af29a56dd138b4b5bde747f29bf4e83bae91009f4172960240e62f92c20445068b9bf2942977f1d7c967f9759445deb371687139f076f6a7bd521156f46a6a43c59032b25286b47485dd0c86a101b7b852b24565c88ee687c9293171ba2504b6484ad3ef5caaf66da21ac5846f86e0b5b2134f878dcef865a366b82827c6896bfb74ee21faaa8656113f194f7a55cfbe4b6dba3e7223700c6b2c6e827eae07300da729f1f80efab0b0f19e78a66d49aadf6546136ba2363fb0950998154996cf7076485bc98059350ac69e04e36379119f6def121d3df48bb3b8d6496b007f782ec0b53e99cfb3f07e83909d3bc6a25a873d6704220cb2c24ed7a9971cd4b021e84b6382f548b7600973cdc970cf1cc8662762761e2f292483ea776304a9fad857f90c1cbd4a6f2ba1dc77fe1593b9306e15af8fc769b5cbb6b7909f27e19448a08a9332564ec9cdd0d878a1f1c9dd9cc1671c622230604e39927ff92274aff6614d32a88e656dc4ab8d5c86f390e3d17a4d1f96491d866e3c1db5e09d7e4fef1d4c02930f3b67a480e97fce5a07c119aa8148583586666c725a9b93cfb2248bd56c6c07577f13c7c38ec65d0fa58092709a239837b0e4d7ca427403c33d55bd80ac9b159c1fa5866796d77f2c8151646b7d445e936957cdf29a68fbe97968e40d69853243c12f8aa0e58873f209133e5c6c4201d406c37f55b97530e2226be4da40989280a612a7c632ed69c3c15</script>
+  <div class="hbe hbe-content">
+    <div class="hbe hbe-input hbe-input-default">
+      <input class="hbe hbe-input-field hbe-input-field-default" type="password" id="hbePass">
+      <label class="hbe hbe-input-label hbe-input-label-default" for="hbePass">
+        <span class="hbe hbe-input-label-content hbe-input-label-content-default">您好，请输入密码。</span>
+      </label>
+    </div>
+  </div>
+</div>
+<script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/400066455/" rel="next" title="【公式求解】线性规划（5）">
+                  <i class="fa fa-chevron-left"></i> 【公式求解】线性规划（5）
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/370591374/" rel="prev" title="【公式求解】线性规划之整数规划（2）">
+                  【公式求解】线性规划之整数规划（2） <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">655</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">22</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu </span>| <a href="https://beian.miit.gov.cn/" target="_blank">京ICP备20018740号-1</a>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+    
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>
