@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    }
+  };
+</script>
+
+  <meta name="description" content="霍夫变换不仅可以用来检测直线，同样也可以用来检测圆。">
+<meta name="keywords" content="数据科学,数据分析,数据挖掘,机器学习,深度学习,字节猫,比特猫,数据猫,数据与模型,ByteCat">
+<meta property="og:type" content="article">
+<meta property="og:title" content="用opencv实现圆检测">
+<meta property="og:url" content="https://smallchao.github.io/3760115698/index.html">
+<meta property="og:site_name" content="ByteCat">
+<meta property="og:description" content="霍夫变换不仅可以用来检测直线，同样也可以用来检测圆。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2022-01-14T04:07:35.967Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="用opencv实现圆检测">
+<meta name="twitter:description" content="霍夫变换不仅可以用来检测直线，同样也可以用来检测圆。">
+  <link rel="canonical" href="https://smallchao.github.io/3760115698/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>用opencv实现圆检测 | ByteCat</title>
+  <meta name="generator" content="Hexo 3.9.0">
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+	
+	<!--
+	<a href="https://github.com/smallchao" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	-->
+	
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">ByteCat</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">探索数据的世界</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据结构">
+      
+    
+
+    <a href="/categories/0A" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据结构</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-算法设计">
+      
+    
+
+    <a href="/categories/0X" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>算法设计</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-基础应用">
+      
+    
+
+    <a href="/categories/1" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>基础应用</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据存储">
+      
+    
+
+    <a href="/categories/2" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据存储</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数据可视化">
+      
+    
+
+    <a href="/categories/3" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数据可视化</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-科学计算">
+      
+    
+
+    <a href="/categories/4" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>科学计算</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-概率论与数理统计">
+      
+    
+
+    <a href="/categories/5" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>概率论与数理统计</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-微分方程建模">
+      
+    
+
+    <a href="/categories/6" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>微分方程建模</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-数值模拟">
+      
+    
+
+    <a href="/categories/7" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>数值模拟</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-优化理论">
+      
+    
+
+    <a href="/categories/8" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>优化理论</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-经典机器学习">
+      
+    
+
+    <a href="/categories/9" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>经典机器学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-深度学习框架">
+      
+    
+
+    <a href="/categories/a" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>深度学习框架</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-计算机视觉">
+      
+    
+
+    <a href="/categories/b" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>计算机视觉</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-图论与复杂网络">
+      
+    
+
+    <a href="/categories/c" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>图论与复杂网络</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-空间计算">
+      
+    
+
+    <a href="/categories/d" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>空间计算</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-信息安全技术">
+      
+    
+
+    <a href="/categories/e" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>信息安全技术</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-推荐算法">
+      
+    
+
+    <a href="/categories/f" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>推荐算法</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-文本和语音">
+      
+    
+
+    <a href="/categories/g" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>文本和语音</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-生成对抗网络">
+      
+    
+
+    <a href="/categories/h" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>生成对抗网络</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-时间序列">
+      
+    
+
+    <a href="/categories/i" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>时间序列</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-半监督学习">
+      
+    
+
+    <a href="/categories/k" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>半监督学习</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-强化学习">
+      
+    
+
+    <a href="/categories/l" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>强化学习</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content page-post-detail">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://smallchao.github.io/3760115698/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Victor Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ByteCat">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">用opencv实现圆检测
+
+          
+        </h1>
+
+        <div class="post-meta">
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-01-14 12:07:35" itemprop="dateModified" datetime="2022-01-14T12:07:35+08:00">2022-01-14</time>
+              </span>
+            
+          
+
+          
+            <div class="post-description">霍夫变换不仅可以用来检测直线，同样也可以用来检测圆。</div>
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+	
+    <div class="post-body" itemprop="articleBody">
+
+      
+	  
+	  
+        <div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="抱歉，密码错误，请再试试。" data-whm="抱歉，这个文章不能被纠正，不过您还是能看看解密后的内容。">
+  <script id="hbeData" type="hbeData" data-hmacdigest="7945ca5ab092dcbb725908976bac704638e1ee23fcf107874539be32aca00670">3ece6c3a5533aea0d4373d783421738de563f8807961d1042b7b267f1554e3882cbf206e7f5693763a947417e2f8ea117a21acac80be19b085531d5ef75c7be48bff12fe19f6e4a7e3f2b2c1e3394167fffec08e1991a2ba8c16055f32c54eca8d98ff020dc78d8bb438ac3b4d4700b33190ff3d018ba19e07e8362ef9904a828c4bbe3f2a932424ed21b4709858151cdf169a25bdb28b47a93f7c126647b9cc3747f77aa4ca1726f0b913cd565e6322f64c8160343c998b90ec178d43411b6887b99fff949f039061a0fb8fd4c5c6193e2853fef79de91473cf20c84b4c3c2b5bb7d5d8be850b3afe022b83751f8257a31a5672eba376d16e854c5758b4931d536afaee2d7458b05a483e3f76e020780ed903c5028ce3a5f17c66b70db71cbc534e8fa9a37b365691ce1b4a74a26f6316fd9b75f0619cf5bd160cde6be4703260786265ddd39d196d7b769abdf0ca1195a63545d7a2c0bd092f0e106ca6e45510a4ec01aad8e9c765ac1bedd1431a7f5cab0a5de7129e698236e23e12eab08e16830c0cc0b72e7abfd4547f7cc07b2512c0c9ba2c816ae3ac008e59c79f52f86e5ea78a304c0dd8e80d27f0d85e2547c8bca60f35556279d54d23ed0e0a533f45686d72aacfeab3b4b26b6f628d4b3da54b28c85bf7e2e43d0e289fe83db33198351a8bde3ce91a0df8238f31783eada2ab8581683ac5be8df65605f6ead5adb784ad5bb571b0b5ed770855da94dba6a8641d62beaf80e6a544ba874cf0fa54c932f3de4ce92525552e1d259f4daea2524e5d4b822355da458debee264ee84b386bd7581ab0e945c569e900ff1c26d7b86e80a1fc682cff7aec1d6704cb7f317d418e7aec4251f21b6fcc8e567da06d56b6ed89a13cab0ffd1a24a483d0504c7be87f6cd9191ea6d71574177e1447ba9bb5e1a2145da1e71bc1b3af80aac88cbf1c45b78fe5fb2d458b47861f16a26003dc8b34a937662221ebf561b9a427a7644ec62e9218a5143fdfc33d1fa384290335bfc335b82b5321c543a4b3f9d41fa00a87609806747623ce88336559e77be0d5352e3f674f9b3ebadd6eb92b27a578ab5df4399f084d9c4e8c1788d567e322c91ea1e5e0c9f76c162e95718e5874e6d8cf1d20e453db1f14fe53e399e05fad11778d091673575770c91c9a8a2aca1a050b59260dbfde591da01bdf208373b2eb8ba8927635acc0367e23776269285d56f24eaa07c4eee9b5614a3fee4b3809626dcd715f1382829ff39668bafdef7f7a823577272315eed159cabdff75fefc6a0530d336ed1d6f0ad01049b77d5c41ebf77469648312a37e56cec6608c783e1909845fcaec7b7bf9a835a6a3e0f42c6eccf21d2f9b92873ea82524588fe8d6081d532dcf2c3971736409a0d106ce425bbcac8ad2a85dfe06fb59d5678c4df220225baa07c391aa66d7ce15442263fd356529df3b19229dd53df0d9f2a1c1711c9ba76cf90538d78190f664d9eaf23a5ba36cb3b60d7a4c2fc1a3a7491e9f4498724b6be4b6bb61da8138af81a71b0bf49ba035a6b39587c13b4c4006fc58b5d5c8dbad6fecbcf140cf94567675181f48148d37480ae74e6c6c1d2bd0ce5aff312a3199f0dbac3884760e79925aec3fa48964943b4c3b06757b94ed1e4f7d2fa87e602f023395eefe8e3a8fa9c87be324ce1fa4e53f87bffee6ea36428868920e473268e907de187f45b553e0e5577e5aef4a7a152c143e5ab587a4ef7df56bd316df053ece3eadf83418c1e50d6866c9e76a47b33771e66828ece5a3b82dde7e28a53cc14e36656a7e077678a36b68c94a6fd547813e9d44248aa71e4f59939c8b435f93d02473d924f64256558d1e2a8f8febed6fad2946244a089bf8937f0504f4bd81e8a5ee462ccac8661074246a209a29a4d03000a33c077e35c5854c5aeedef4bf832b0505db34790362f741a49c5343b7ba6a38b69af45dfa7ce801b1e1daacacfc59be72b7eeba3ba3b280ca178fe9b214d084e58c7a697f2a20ef56d87fc1d53e55090f76734d29e2f73d27d39a309f4c119fcbdab18ac5e3c28186ae5b3850cd843ae0c6ed540192ff5afdc0d660ad8c082015d32f8ae8cadfc0a7f704901224d9d401f4eadf82862b94082626bfc0d5d573967dc2891047243992ad20e3be7f6fa9fdfb144c9d94712cd36038118509f3883c06fc0c762a34972ccc87e3c285fc195521132f4fed33f781379a1077d393923256af97d86f1f78460d4fae9d37a63d4cab3ca4635b10254d1b426598ed59faf69dea07c1725d2c12d9a85b4dc3a92ab15fcfd1a613b8ab2c74b4273be5e64b14ced968050a9d53d64d00c18254c98dc2722934eb28ba833f312a7da0479bbee5775c10641b99fc720b8f3f6bd8cab4bf6223302ee3621d2642a639a42ec85c285676b88b50b5c1ba13dbccca4db97904322ffbf5fb6c15b6219f3882f0150a2a2c888a1a07743ddb87fc4fc53b6677cf3403785355acbcfdd19a1c31e4fe73645de7653c34819cb59cc918f129807e47c2cd7ea7d8a29bfc43a8884045e1d4cc90030210bb32e152828c186d21cc1b4a37edb5ef234952743e53606b409b11cd628c136f0e59a9684da6c0f9baf27463e747fe8ca3cf875b0ae27769a87f19024f4d56269948cf09ec260cc4f576f2f55cd7bd1d3a1458a883ad2e6897d8108f7b6d605e6dc779a39653033c07a8c9b5da20706419bf5345b07e647165d125db045c526d47dfa02f858b04a867673dd5a8481c77ec7d47a4bc2f95f50f39305c08005c09de9e5c66c2c6d829bc5bcff0df00af37109cae4409b30af454b56b7161b7710fea98ff1a151642589277ec20e7d428cfdc3942f8f219d26ac4794316fe738928287ed607e3d6f081ebf3d81a30779b6144bc4771ccb88b255345148d40628b6017e6cc6f174d657116081588b74ba06b9408c9d79c139981738e2da0eebccf246e3367d9ee0ec3483d846752f45bd2f669cf276b4f7e979459a271c1d7f19ed6018cc122df469dbdf1ac75217d3acadf26de6a398a79f655c332c61166375a5ce2886a72ec6f505342beb94ef0f3696481a9b9fc27e91bf64041b106282f5e13234303e7c5ab2f81addec243303f7dfec7216b2c007850146f2e0a6ce6d6ddc05a3b3fc857057da63a3644907e53a776054701d3e20d293685406dc746ee61993804dc978d7dbf54981ef8a2ad80e4e644c113ecc2497f6f4c0ea4e0ceb07b7008ea2a553ad67a80e041d42b16c7a7036647a4429e991c875e4da31a82107f5b6c025fcc78ef192fd75ae023ebe80fbb3d33a7677b3806d2aa31afddf10cbb28560ad95e931f42499dadd0d64242eef0032601d4acd772eda491f4b57e338591dc8d5967d4027a4d7742e6fbc5209116fa28993062a0c48fb316ded63f2a79e4e38ffc87b3cd81d124e78c156aeffb33b607a629cce746aa6af7cb7afaf3e8be0544175b117bce02e3b3acf819fd3103e9149eaa6cdde9469ba07a5849e64f8070199fc99657060d2b62d7392f6e2ff1510286682056df2d36296c214c3963289e94a6b4f0d0a113025c30b99ec0a6b519d96c35f3c4b3809450c921b166c15c5e5c808ff3624d5517fffe943638544a1079478c38c492bb3a936c8d0ea4d8bd98792ce5487deab1997e87fda4bbf72580b8ec56444dc4a607a85e71dab3f3459212fadf460ed9efbe0566444525a5ff1ac85ed239204422215ec4c2602ee62be69c1d217e89de0e09aa9862f080caf826c755781e1a4d3ce62ea73f6a051ae8a795eabde6c59c338b6cf78743d928791c387d66195289addf8393b5616e987ad36806aed3aa7525ab3bc073243af3ecdf3514ee6ab252ec1087ed6769074d6cc92dbf91f96ac1ab20c7f0bdcd73d451a41dbb578e3e1c21765bb4c272f99143ee59f0aaacedd6fd7866ade1fdfc04c4d36d78793d6cc68971bfc1422650892c2e959649bf9dbf073d040bf5dac3f5b913b43a85fe39fa4bf046587db57ad823f8db73873f3505f37ac0e4a3d12b1edd694a4a4ff6fb7282504db14f47877046c49969462af89ac59f1d361a68976f41f1db7961461789fbf4304a3a69c5142c4c4ff29eef5a554c37b1c12b8a8e00027a1898e81ec447476b0df9d9313a585dfeafd67877fce1eefcd7b2794558b7d65231a76387b03c8f8fa3850dd83aba949895c3006c8da6b7692f9bedca81cbbd51d2078f6a4a2915357d6305922c54c8a3a4f1cd63ee4d3ae16e57021c3fd6f6f8bcac45a641d0d575f30d4780e8300c7248fe2d4c91d8dd4e5fc57891bc7327ee731d375fd088cb771f8b445f7de5db262132d373b0c33510017ab1a590674d5ce7cb35c0a3638bce8c074d86eb89dfdc2074145c355cd54d092344a311293ee6649b4260201366c340a14108805a5e652211ec58b09e44b8525132dff050d73336afbec5ce8d3db12ca277c895f4774ba40af6c9fb479830a303ea6d0df0de4999657b1c4a67d0200aa32e4fd1dbf229a7f84bbe732010c3384e30aaa1000d53c266fd4e8cebed50b0b8875a676e873861af322f4024e05b364024905fd8bd9d411a295727090788b322e1261ec4b319bc8cf715c92cbb829d048fdde79619267cb1c0dd4ce1e96ec9316979203c7529be1d1f118cb393e484b6b893ad0479ecaf90d720c35ef39591a250f4a14a74e804213e87d718b5f0b394f8bf7b8e9ebb9b253c6c37572e8164dd1cde750a3522ae354a368a924d8618d4c6fbd198103479c7c8145904fee7466624db835916f4ecd883031c80f084f46f6d7f2caf97ad50103df6671d85acc20f4961ce1cc1d29f904a8d2cfd11dbefd1f103b79ae9fdbc3ab60549e1a5f72f2e3597c1a9a454ad5e5329af7d06487cb8722a1b8502d1ecaf9c1debd4b9270352d8f23d76447a38b4a0b3f665c2a739457398bcf3f165bf4e45cb344be1c57375d7e8e8f263bd09a9447718154c37c0b13ce677023d58b64d4584e571358b718d4d73821251cb4a76fafc6e7fb4daea2880a581a699ee71fc960869c480d0ee7ba112325588c658114cf4ef7201227d30af14d9ab513b54a6a4d9ac76fe38248c9662fb7615aa73fd7d70f7c88e798240b710e06bc0adee097020ffc4ee3b6d4548961cf126488136ae5ef3e7d750f56f62c2acdfdc6fd3dc1425d6e6ab8b01edc8be6176ed92a7f5ff5694510d7d5d45005e6bbf2aeed6bb806f211316058754556db82205e5b4cddcc312f9b568f48d15bb94d8a5373fca189975585586856851646cf3a791592cfb9eba0a7b1283c5ddd0a35ba2a4c2ddc8c00090bdb25209c5772987d4524c38c5bfb5756a99d5f510f848afc68ed61530df7fdfb869c96084802c7e80951b01f7514245feab7967a4d8626330fcae3b06b44fb84b0bfd1dbb2a13846252c2aaa900abc513be76843ebb364bd4b99a3c572b8b1cf4a72ce9622264b29700c960abdaa0cf6d7889394ebbd9ed557b759d913ff07c68e45e1d9f36f902c0d208dfe91ba37c8c9c6bc06ec4626261010e6a1f69a41ffd6566cbf781bbf53a8897ae9cb40dc11e5c0f13c198c86aec4ae45af389cca97acfe94d17312b4fdd6ba532e08ba52fd378e0890184f74c397de8341348273941b6ffd6311a42c3d97bc815235c38db8b8608548130cb7297e7feed7779b4cf95c384955466d7e37d1f61a4deba8d88237d82c930985c14680a2da32080563d78ed2d6436ce2535ceb602b894f0e1cf0f6c4855e0c696901c0a0346dbfda4d256357a3494d064df0517821944f5663c2329e158c80dc0476f0869c37f5f1d4b4bb457116775be300243cb</script>
+  <div class="hbe hbe-content">
+    <div class="hbe hbe-input hbe-input-default">
+      <input class="hbe hbe-input-field hbe-input-field-default" type="password" id="hbePass">
+      <label class="hbe hbe-input-label hbe-input-label-default" for="hbePass">
+        <span class="hbe hbe-input-label-content hbe-input-label-content-default">您好，请输入密码。</span>
+      </label>
+    </div>
+  </div>
+</div>
+<script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">
+    </div>
+	
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/572269927/" rel="next" title="用opencv实现车道线检测">
+                  <i class="fa fa-chevron-left"></i> 用opencv实现车道线检测
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2969359875/" rel="prev" title="图像形状特征之HOG、LBP、Haar">
+                  图像形状特征之HOG、LBP、Haar <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+	
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc" data-target="post-toc-wrap">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+          站点概览
+        </li>
+      </ul>
+	 
+
+      <!--noindex-->
+	  
+      <div class="post-toc-wrap sidebar-panel">
+		<!--
+		-->
+      </div>
+	  
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.png"
+      alt="Victor Wu">
+  <p class="site-author-name" itemprop="name">Victor Wu</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+	
+  <nav class="site-state motion-element">
+  <!--
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">678</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">22</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+	-->
+  </nav>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Victor Wu </span>| <a href="https://beian.miit.gov.cn/" target="_blank">京ICP备20018740号-1</a>
+</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.3.0"></script><script src="/js/motion.js?v=7.3.0"></script>
+<script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+<script src="/js/next-boot.js?v=7.3.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+  <script src="/js/post-details.js?v=7.3.0"></script>
+
+
+</body>
+</html>
